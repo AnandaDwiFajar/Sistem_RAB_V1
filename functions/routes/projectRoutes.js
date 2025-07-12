@@ -7,6 +7,7 @@ const projectController = require('../controllers/projectController');
 // Existing routes
 router.get('/user/:userId', projectController.getUserProjects);
 router.post('/user/:userId', projectController.addProject);
+router.put('/:projectId', projectController.updateProject); 
 router.get('/:projectId/user/:userId', projectController.getProjectById); // Assuming userId is part of the path for this
 router.delete('/:projectId/user/:userId', projectController.deleteProject); // Assuming userId is part of the path for this
 
@@ -18,6 +19,12 @@ router.post(
     // protect,
     projectController.addWorkItemToProject
 );
+router.put(
+    '/:projectId/work-items/:workItemId',
+    // protect, // Terapkan middleware otentikasi jika diperlukan
+    projectController.updateWorkItemFromProject // Hubungkan ke controller yang baru dibuat
+);
+
 router.delete(
     '/:projectId/work-items/:workItemId',
     // yourAuthMiddleware, // if you use it

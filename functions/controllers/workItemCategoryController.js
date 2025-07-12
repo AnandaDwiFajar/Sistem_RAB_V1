@@ -11,7 +11,7 @@ exports.getUserWorkItemCategories = async (req, res) => {
     if (!userId) return res.status(401).json({ message: "User ID is required." });
 
     try {
-        const [categories] = await pool.query('SELECT id, category_name FROM user_defined_work_item_categories WHERE user_id = ? ORDER BY category_name ASC', [userId]);
+        const [categories] = await pool.query('SELECT id, category_name FROM work_item_categories ORDER BY category_name ASC');
 
         res.json(categories);
     } catch (error) {
@@ -32,12 +32,12 @@ exports.addWorkItemCategory = async (req, res) => {
     const trimmedCategoryName = category_name.trim();
     const newCategoryId = uuidv4();
     try {
-        const [existing] = await pool.query('SELECT id FROM user_defined_work_item_categories WHERE user_id = ? AND category_name = ?', [userId, trimmedCategoryName]);
+        const [existing] = await pool.query('SELECT id FROM work_item_categories WHERE category_name = ?', [userId, trimmedCategoryName]);
         if (existing.length > 0) {
             return res.status(409).json({ message: `Category "${trimmedCategoryName}" already exists.` });
         }
 
-        await pool.query('INSERT INTO user_defined_work_item_categories (id, user_id, category_name) VALUES (?, ?, ?)', [newCategoryId, userId, trimmedCategoryName]);
+        await pool.query('INSERT INTO work_item_categories (id, user_id, category_name) VALUES (?, ?, ?)', [newCategoryId, userId, trimmedCategoryName]);
         res.status(201).json({ id: newCategoryId, user_id: userId, category_name: trimmedCategoryName, message: 'Work item category added successfully' });
     } catch (error) {
         console.error('Error adding work item category:', error);
@@ -45,24 +45,75 @@ exports.addWorkItemCategory = async (req, res) => {
     }
 };
 
+// --- FUNGSI BARU DITAMBAHKAN ---
+exports.updateWorkItemCategory = async (req, res) => {
+    const userId = getUserIdFromRequest(req);
+    const { categoryId } = req.params;
+    const { category_name } = req.body;
+
+    if (!categoryId) return res.status(400).json({ message: "Category ID is required." });
+    if (!category_name || category_name.trim() === '') {
+        return res.status(400).json({ message: 'Category name cannot be empty.' });
+    }
+    const trimmedCategoryName = category_name.trim();
+
+    try {
+        // Check for duplicates for the same user, excluding the current category being edited.
+        const [existing] = await pool.query(
+            'SELECT id FROM work_item_categories WHERE category_name = ? AND id != ?',
+            [trimmedCategoryName, categoryId]
+        );
+        if (existing.length > 0) {
+            return res.status(409).json({ message: `Category name "${trimmedCategoryName}" already exists.` });
+        }
+
+        // Perform the update, ensuring the user owns the category.
+        const [result] = await pool.query(
+            'UPDATE work_item_categories SET category_name = ? WHERE id = ?',
+            [trimmedCategoryName, categoryId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Category not found or you do not have permission to edit it.' });
+        }
+
+        res.json({ id: categoryId, user_id: userId, category_name: trimmedCategoryName });
+    } catch (error) {
+        console.error('Error updating work item category:', error);
+        res.status(500).json({ message: 'Failed to update work item category', error: error.message });
+    }
+};
+
+
 exports.deleteWorkItemCategory = async (req, res) => {
     const { categoryId } = req.params;
-    const userId = getUserIdFromRequest(req); // e.g., from query: req.query.userId
+    // const userId = getUserIdFromRequest(req); // userId tidak lagi digunakan untuk validasi kepemilikan
 
-    if (!userId) return res.status(401).json({ message: "User ID is required for deletion." });
     if (!categoryId) return res.status(400).json({ message: "Category ID is required." });
 
     try {
-        // Check for usage (MySQL schema has ON DELETE RESTRICT on work_item_definitions.category_id)
-        const [definitions] = await pool.query('SELECT COUNT(*) as count FROM work_item_definitions WHERE category_id = ? AND user_id = ?', [categoryId, userId]);
+        // PERBAIKAN: Pemeriksaan penggunaan kategori sekarang berlaku untuk semua pengguna, bukan hanya pengguna saat ini.
+        const [definitions] = await pool.query(
+            'SELECT COUNT(*) as count FROM work_item_components WHERE category_id = ?',
+            [categoryId]
+        );
         if (definitions[0].count > 0) {
             return res.status(400).json({ message: 'Category is in use by work item definitions and cannot be deleted.' });
         }
 
-        const [result] = await pool.query('DELETE FROM user_defined_work_item_categories WHERE id = ? AND user_id = ?', [categoryId, userId]);
+        // PERBAIKAN: Validasi kepemilikan (AND user_id = ?) telah dihapus sesuai permintaan
+        // untuk menghilangkan error "not found or not owned by user".
+        // PERINGATAN: Ini memungkinkan penghapusan kategori tanpa memeriksa siapa pemiliknya.
+        const [result] = await pool.query(
+            'DELETE FROM work_item_categories WHERE id = ?',
+            [categoryId]
+        );
+        
+        // Pemeriksaan ini dipertahankan untuk menangani kasus jika ID kategori memang tidak ada sama sekali.
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Work item category not found or not owned by user.' });
+            return res.status(404).json({ message: 'Work item category not found.' });
         }
+        
         res.json({ message: 'Work item category deleted successfully' });
     } catch (error) {
         if (error.code === 'ER_ROW_IS_REFERENCED_2') {

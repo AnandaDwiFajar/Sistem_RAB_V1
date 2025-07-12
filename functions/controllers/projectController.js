@@ -4,40 +4,52 @@ const { v4: uuidv4 } = require('uuid');
 
 const getUserIdFromRequest = (req) => req.params.userId || req.body.userId || req.query.userId || (req.user && req.user.id);
 
+
 // --- INTERNAL HELPER FUNCTION to get full project details ---
-async function getFullProjectDetails(projectId, userId, dbClient) { // dbClient can be pool or a specific connection
-    // 1. Fetch the main project details
+async function getFullProjectDetails(projectId, userId, dbClient) {
     const [projectRows] = await dbClient.query(
-        'SELECT * FROM projects WHERE id = ? AND user_id = ?',
-        [projectId, userId]
+        'SELECT * FROM projects WHERE id = ?',
+        [projectId] // Cukup projectId, karena kepemilikan sudah divalidasi di controller
     );
 
     if (projectRows.length === 0) {
-        return null; // Project not found or not owned by user
+        return null;
     }
     const project = projectRows[0];
 
     // Parse main numeric fields and boolean
-    project.total_calculated_budget = parseFloat(project.total_calculated_budget);
-    project.actual_income = parseFloat(project.actual_income);
-    project.actual_expenses = parseFloat(project.actual_expenses);
+    project.direct_cost_estimate = parseFloat(project.direct_cost_estimate);
+    project.project_price = parseFloat(project.project_price);
+    project.total_calculated_income = parseFloat(project.total_calculated_income);
     project.is_archived = Boolean(project.is_archived);
+    project.total_budget_plan_cost = parseFloat(project.total_budget_plan_cost);
 
-
-    // 2. Fetch associated work items
+    // ====================== PERBAIKAN UTAMA DI SINI ======================
+    // 2. Fetch associated work items DENGAN JOIN untuk mendapatkan category_id
     const workItemsSQL = `
         SELECT 
             pwi.id, 
             pwi.source_definition_id_snapshot,
             pwi.definition_name_snapshot,
             pwi.definition_key_snapshot,
-            pwi.primary_input_value, 
+            pwi.calculation_value, 
             pwi.primary_input_display_snapshot,
             pwi.total_item_cost_snapshot,
-            pwi.added_at
-        FROM project_work_items pwi
-        WHERE pwi.project_id = ?
-        ORDER BY pwi.added_at DESC`;
+            pwi.added_at,
+            pwi.input_details_json, 
+            pwi.output_details_json,
+            pwi.schema_type AS calculation_schema_type_snapshot,
+            wd.category_id 
+        FROM 
+            project_work_items pwi
+        LEFT JOIN 
+            work_item_components wd ON pwi.source_definition_id_snapshot = wd.id
+        WHERE 
+            pwi.project_id = ?
+        ORDER BY 
+            pwi.added_at DESC`;
+    // ===================================================================
+            
     const [workItemsRows] = await dbClient.query(workItemsSQL, [projectId]);
 
     project.workItems = await Promise.all(
@@ -56,9 +68,17 @@ async function getFullProjectDetails(projectId, userId, dbClient) { // dbClient 
                 FROM project_work_item_components_snapshot pwics
                 WHERE pwics.project_work_item_id = ?`;
             const [comps] = await dbClient.query(componentsSQL, [wi.id]);
+            let inputDetailsSnapshot = {};
+            try {
+                // Ganti nama `input_details_json` menjadi `input_details_snapshot` agar sesuai dengan frontend
+                inputDetailsSnapshot = JSON.parse(wi.input_details_json || '{}');
+            } catch (e) {
+                console.error(`Gagal parse input_details_json untuk work item ${wi.id}:`, wi.input_details_json);
+            }
             return {
                 ...wi,
-                primary_input_value: parseFloat(wi.primary_input_value),
+                input_details_snapshot: inputDetailsSnapshot,
+                calculation_value: parseFloat(wi.calculation_value),
                 total_item_cost_snapshot: parseFloat(wi.total_item_cost_snapshot),
                 components_snapshot: comps.map(c => ({
                     ...c,
@@ -71,43 +91,39 @@ async function getFullProjectDetails(projectId, userId, dbClient) { // dbClient 
         })
     );
 
-    // 3. Fetch associated cash flow entries
+    // 3. Fetch associated cash flow entries (tidak ada perubahan)
     const cashFlowSQL = `
-        SELECT 
-            pcf.id, 
-            pcf.entry_date, 
-            pcf.description, 
-            pcf.entry_type, 
-            pcf.amount, 
-            pcf.category_id, 
-            udcfc.category_name AS cash_flow_category_name,
-            pcf.is_auto_generated,
-            pcf.linked_project_work_item_id
-        FROM project_cash_flow_entries pcf
-        LEFT JOIN user_defined_cash_flow_categories udcfc ON pcf.category_id = udcfc.id
-        WHERE pcf.project_id = ? 
-        ORDER BY pcf.entry_date DESC, pcf.created_at DESC`;
+      SELECT 
+        pt.id, pt.transaction_date AS entry_date, pt.details AS description,
+        pt.transaction_value AS amount,
+        pt.transaction_category_id AS category_id, udt.category_name AS cash_flow_category_name,
+        pt.related_work_item_id AS linked_project_work_item_id
+      FROM project_transactions pt
+      LEFT JOIN other_cost_categories udt ON pt.transaction_category_id = udt.id
+      WHERE pt.project_id = ?
+      ORDER BY pt.transaction_date DESC, pt.created_at DESC
+    `;
     const [cashFlowRows] = await dbClient.query(cashFlowSQL, [projectId]);
     project.cashFlowEntries = cashFlowRows.map(cf => ({ ...cf, amount: parseFloat(cf.amount) }));
 
     return project;
 }
-// --- END OF HELPER FUNCTION ---
-
-// --- CONTROLLER FUNCTIONS ---
 
 exports.getUserProjects = async (req, res) => {
     const userId = getUserIdFromRequest(req);
     if (!userId) return res.status(401).json({ message: "User ID is required." });
     try {
-        const [projects] = await pool.query(
-            'SELECT id, project_name, total_calculated_budget, actual_income, actual_expenses, created_at, is_archived FROM projects WHERE user_id = ? AND is_archived = FALSE ORDER BY created_at DESC',
-            [userId]
-        );
+const [projects] = await pool.query(
+  `SELECT id, project_name, direct_cost_estimate, project_price, total_budget_plan_cost, created_at, is_archived 
+   FROM projects 
+   WHERE is_archived = FALSE 
+   ORDER BY created_at DESC`,
+  [userId]
+);
         const formattedProjects = projects.map(p => ({
             ...p,
             is_archived: Boolean(p.is_archived),
-            total_calculated_budget: parseFloat(p.total_calculated_budget),
+            direct_cost_estimate: parseFloat(p.direct_cost_estimate),
             actual_income: parseFloat(p.actual_income),
             actual_expenses: parseFloat(p.actual_expenses),
         }));
@@ -118,49 +134,48 @@ exports.getUserProjects = async (req, res) => {
     }
 };
 
-exports.getArchivedUserProjects = async (req, res) => {
-    const userId = getUserIdFromRequest(req);
-    if (!userId) return res.status(401).json({ message: "User ID is required." });
-    try {
-        const [projects] = await pool.query(
-            'SELECT id, project_name, total_calculated_budget, actual_income, actual_expenses, created_at, updated_at, is_archived FROM projects WHERE user_id = ? AND is_archived = TRUE ORDER BY updated_at DESC',
-            [userId]
-        );
-        const formattedProjects = projects.map(p => ({
-            ...p,
-            is_archived: Boolean(p.is_archived),
-            total_calculated_budget: parseFloat(p.total_calculated_budget),
-            actual_income: parseFloat(p.actual_income),
-            actual_expenses: parseFloat(p.actual_expenses),
-        }));
-        res.json(formattedProjects);
-    } catch (error) {
-        console.error("Error fetching archived projects:", error);
-        res.status(500).json({ message: "Failed to fetch archived projects", error: error.message });
-    }
-};
-
 exports.addProject = async (req, res) => {
     const userId = getUserIdFromRequest(req);
     if (!userId) return res.status(401).json({ message: "User ID is required." });
-    const { projectName } = req.body;
+
+    // DIUBAH: Ambil juga projectPrice
+    const { projectName, customerName, location, startDate, dueDate, projectPrice } = req.body;
+
     if (!projectName || projectName.trim() === '') {
-        return res.status(400).json({ message: 'Project name is required.' });
+        return res.status(400).json({ message: 'Nama proyek wajib diisi.' });
     }
+
+    const parsedProjectPrice = parseFloat(projectPrice) || 0;
     const newProjectId = uuidv4();
+    
+    // BARU: Menggunakan transaksi database
+    const connection = await pool.getConnection();
     try {
-        await pool.query(
-            'INSERT INTO projects (id, user_id, project_name) VALUES (?, ?, ?)',
-            [newProjectId, userId, projectName.trim()]
+        await connection.beginTransaction();
+
+        // 1. Masukkan data proyek utama ke tabel 'projects'
+        await connection.query(
+            'INSERT INTO projects (id, user_id, project_name, customer_name, location, start_date, due_date, project_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [newProjectId, userId, projectName.trim(), customerName, location, startDate, dueDate, parsedProjectPrice]
         );
-        const newProjectData = await getFullProjectDetails(newProjectId, userId, pool);
+
+        // 3. Commit transaksi jika semua berhasil
+        await connection.commit();
+        
+        const newProjectData = await getFullProjectDetails(newProjectId, userId, connection);
         if (!newProjectData) {
             return res.status(404).json({ message: "Project created but could not be retrieved." });
         }
         res.status(201).json(newProjectData);
+
     } catch (error) {
-        console.error("Error creating project:", error);
+        // Rollback transaksi jika terjadi error
+        await connection.rollback();
+        console.error("Error creating project with cash flow:", error);
         res.status(500).json({ message: "Failed to create project", error: error.message });
+    } finally {
+        // Selalu lepaskan koneksi
+        connection.release();
     }
 };
 
@@ -183,27 +198,20 @@ exports.getProjectById = async (req, res) => {
     }
 };
 
-exports.archiveProject = async (req, res) => {
+exports.deleteProject = async (req, res) => {
     const { projectId } = req.params;
-    // Assuming userId is obtained from auth middleware (req.user.id) or passed in body/query for this action
-    const userId = getUserIdFromRequest(req); 
+    const userId = getUserIdFromRequest(req);
 
-    if (!userId) return res.status(401).json({ message: "User authentication required." });
-    if (!projectId) return res.status(400).json({ message: "Project ID is required." });
-
+    if (!userId || !projectId) return res.status(400).json({ message: "User ID and Project ID required."});
     try {
-        const [result] = await pool.query(
-            'UPDATE projects SET is_archived = TRUE, updated_at = NOW() WHERE id = ? AND user_id = ? AND is_archived = FALSE',
-            [projectId, userId]
-        );
+        const [result] = await pool.query('DELETE FROM projects WHERE id = ?', [projectId, userId]);
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Project not found, not owned by user, or already archived." });
+            return res.status(404).json({ message: 'Project not found or not owned by user.' });
         }
-        const archivedProject = await getFullProjectDetails(projectId, userId, pool);
-        res.json(archivedProject);
+        res.json({ message: 'Project deleted successfully' });
     } catch (error) {
-        console.error("Error archiving project:", error);
-        res.status(500).json({ message: "Failed to archive project", error: error.message });
+        console.error("Error deleting project:", error);
+        res.status(500).json({ message: "Failed to delete project", error: error.message });
     }
 };
 
@@ -216,7 +224,7 @@ exports.unarchiveProject = async (req, res) => {
 
     try {
         const [result] = await pool.query(
-            'UPDATE projects SET is_archived = FALSE, updated_at = NOW() WHERE id = ? AND user_id = ? AND is_archived = TRUE',
+            'UPDATE projects SET is_archived = FALSE, updated_at = NOW() WHERE id = ? AND is_archived = TRUE',
             [projectId, userId]
         );
         if (result.affectedRows === 0) {
@@ -230,32 +238,102 @@ exports.unarchiveProject = async (req, res) => {
     }
 };
 
-exports.deleteProject = async (req, res) => {
-    const { projectId } = req.params;
+exports.getArchivedUserProjects = async (req, res) => {
     const userId = getUserIdFromRequest(req);
-
-    if (!userId || !projectId) return res.status(400).json({ message: "User ID and Project ID required."});
+    if (!userId) return res.status(401).json({ message: "User ID is required." });
     try {
-        const [result] = await pool.query('DELETE FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Project not found or not owned by user.' });
-        }
-        res.json({ message: 'Project deleted successfully' });
+        const [projects] = await pool.query(
+  `SELECT id, project_name, direct_cost_estimate, project_price, total_budget_plan_cost, created_at, updated_at, is_archived 
+   FROM projects 
+   WHERE is_archived = TRUE 
+   ORDER BY updated_at DESC`,            [userId]
+        );
+        const formattedProjects = projects.map(p => ({
+            ...p,
+            is_archived: Boolean(p.is_archived),
+            direct_cost_estimate: parseFloat(p.direct_cost_estimate),
+            actual_income: parseFloat(p.actual_income),
+            actual_expenses: parseFloat(p.actual_expenses),
+        }));
+        res.json(formattedProjects);
     } catch (error) {
-        console.error("Error deleting project:", error);
-        res.status(500).json({ message: "Failed to delete project", error: error.message });
+        console.error("Error fetching archived projects:", error);
+        res.status(500).json({ message: "Failed to fetch archived projects", error: error.message });
+    }
+};
+
+exports.archiveProject = async (req, res) => {
+    const { projectId } = req.params;
+    // Gunakan helper yang sudah kita buat untuk mendapatkan konteks lengkap
+
+
+    if (!projectId) return res.status(400).json({ message: "Project ID is required." });
+
+    try {
+        // Bangun kueri secara dinamis
+        let query = 'UPDATE projects SET is_archived = TRUE, updated_at = NOW() WHERE id = ? AND is_archived = FALSE';
+        const queryParams = [projectId];
+
+
+        const [result] = await pool.query(query, queryParams);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Project not found, not owned by user, or already archived." });
+        }
+        
+        // Ambil data proyek yang baru diarsip untuk dikirim kembali
+        const [archivedProjectRows] = await pool.query('SELECT * FROM projects WHERE id = ?', [projectId]);
+        
+        res.json(archivedProjectRows[0]);
+
+    } catch (error) {
+        console.error("Error archiving project:", error);
+        res.status(500).json({ message: "Failed to archive project", error: error.message });
     }
 };
 
 exports.addWorkItemToProject = async (req, res) => {
     const { projectId } = req.params;
-    const { userId } = req.query; // As per your apiService.js for this route
-    const workItemData = req.body;
+    const userId = getUserIdFromRequest(req); // Ensures userId is resolved from query, body, or req.user
+    const workItemData = req.body; // This is calculatedWorkItemPreview from frontend
 
-    if (!userId) return res.status(400).json({ message: "User ID query parameter is required." });
+    if (!userId) return res.status(401).json({ message: "User ID is required." }); // Changed from 400
     if (!projectId) return res.status(400).json({ message: "Project ID path parameter is required." });
-    if (!workItemData || !workItemData.templateKey || !workItemData.name || workItemData.totalItemCost === undefined || !workItemData.definition_key) {
-        return res.status(400).json({ message: "Invalid or incomplete work item data provided." });
+
+    // --- UPDATED VALIDATION ---
+    // These are the fields explicitly prepared by frontend for the backend DB
+    const {
+        source_definition_id_snapshot,
+        definition_name_snapshot,
+        definition_key_snapshot,
+        calculation_value,
+        primary_input_display_snapshot,
+        total_item_cost_snapshot,
+        components_snapshot, // This is the array of component snapshots
+        input_details_snapshot_json,    // Stringified JSON from frontend
+        output_details_snapshot_json,   // Stringified JSON from frontend
+        calculation_schema_type_snapshot // String from frontend
+    } = workItemData;
+
+    if (!source_definition_id_snapshot ||
+        !definition_name_snapshot ||
+        !definition_key_snapshot ||
+        calculation_value === undefined || // Can be 0, so check for undefined
+        !primary_input_display_snapshot ||
+        total_item_cost_snapshot === undefined || // Can be 0
+        !Array.isArray(components_snapshot) // Ensure it's an array
+        // input_details_snapshot_json, output_details_snapshot_json, calculation_schema_type_snapshot can be optional for now
+       ) {
+        console.log("Validation failed. Missing fields:", {
+            source_definition_id_snapshot,
+            definition_name_snapshot,
+            definition_key_snapshot,
+            calculation_value,
+            primary_input_display_snapshot,
+            total_item_cost_snapshot,
+            isComponentsArray: Array.isArray(components_snapshot)
+        });
+        return res.status(400).json({ message: "Invalid or incomplete work item data provided for main fields." });
     }
 
     const connection = await pool.getConnection();
@@ -263,46 +341,71 @@ exports.addWorkItemToProject = async (req, res) => {
         await connection.beginTransaction();
 
         const newProjectWorkItemId = uuidv4();
-        let primaryInputValue = 0;
-        if (workItemData.userInput && typeof workItemData.userInput === 'object' && Object.keys(workItemData.userInput).length > 0) {
-            primaryInputValue = Object.values(workItemData.userInput)[0];
-        }
-        primaryInputValue = parseFloat(primaryInputValue) || 0;
 
+        // --- INSERT INTO project_work_items ---
+        // Using the directly provided snapshot fields from workItemData
         await connection.query(
-            `INSERT INTO project_work_items (id, project_id, source_definition_id_snapshot, definition_name_snapshot, definition_key_snapshot, primary_input_value, primary_input_display_snapshot, total_item_cost_snapshot, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-            [newProjectWorkItemId, projectId, workItemData.templateKey, workItemData.name, workItemData.definition_key, primaryInputValue, workItemData.primaryInputDisplay, parseFloat(workItemData.totalItemCost)]
+            `INSERT INTO project_work_items (
+                id, project_id, source_definition_id_snapshot, definition_name_snapshot, 
+                definition_key_snapshot, calculation_value, primary_input_display_snapshot, 
+                total_item_cost_snapshot, 
+                components_snapshot,
+                input_details_json,
+                output_details_json,
+                schema_type,
+                added_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+            [
+                newProjectWorkItemId, projectId, source_definition_id_snapshot, definition_name_snapshot,
+                definition_key_snapshot, parseFloat(calculation_value), primary_input_display_snapshot,
+                parseFloat(total_item_cost_snapshot),
+                JSON.stringify(components_snapshot || []),
+                input_details_snapshot_json || '{}',
+                output_details_snapshot_json || '{}',
+                calculation_schema_type_snapshot || 'SIMPLE_PRIMARY_INPUT'
+            ]
         );
-
-        if (workItemData.components && workItemData.components.length > 0) {
-            for (const comp of workItemData.components) {
+        if (components_snapshot && components_snapshot.length > 0) {
+            for (const compSnap of components_snapshot) { // Iterate the correct snapshot array
                 const newSnapshotComponentId = uuidv4();
                 await connection.query(
-                    `INSERT INTO project_work_item_components_snapshot (id, project_work_item_id, component_name_snapshot, source_material_price_id_snapshot, unit_snapshot, coefficient_snapshot, component_type_snapshot, quantity_calculated, price_per_unit_snapshot, cost_calculated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [newSnapshotComponentId, newProjectWorkItemId, comp.name, comp.material_price_id || null, comp.unit, parseFloat(comp.coefficient), comp.component_type, parseFloat(comp.quantity), parseFloat(comp.pricePerUnit), parseFloat(comp.cost)]
+                    `INSERT INTO project_work_item_components_snapshot (
+                        id, project_work_item_id, component_name_snapshot, 
+                        source_material_price_id_snapshot, unit_snapshot, coefficient_snapshot, 
+                        component_type_snapshot, quantity_calculated, price_per_unit_snapshot, 
+                        cost_calculated
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        newSnapshotComponentId, newProjectWorkItemId, compSnap.component_name_snapshot,
+                        compSnap.material_price_id_snapshot || null, // Use the field from compSnap
+                        compSnap.unit_snapshot,
+                        parseFloat(compSnap.coefficient_snapshot),
+                        compSnap.component_type_snapshot,
+                        parseFloat(compSnap.quantity_calculated),
+                        parseFloat(compSnap.price_per_unit_snapshot),
+                        parseFloat(compSnap.cost_calculated)
+                    ]
                 );
             }
         }
 
-        const workItemCost = parseFloat(workItemData.totalItemCost);
-        const defaultWorkItemExpenseCategoryId = '6283ba61-3964-11f0-83df-a036bc676c09'; // Ensure this is YOUR valid ID
-        const newCashFlowEntryId = uuidv4();
+        const workItemCostForSummary = parseFloat(total_item_cost_snapshot);
+        // Update project summary
         await connection.query(
-            `INSERT INTO project_cash_flow_entries (id, project_id, entry_date, description, entry_type, amount, category_id, is_auto_generated, linked_project_work_item_id) VALUES (?, ?, CURDATE(), ?, 'expense', ?, ?, TRUE, ?)`,
-            [newCashFlowEntryId, projectId, `Automatic expense for work item: ${workItemData.name}`, workItemCost, defaultWorkItemExpenseCategoryId, newProjectWorkItemId]
-        );
-
-        await connection.query(
-            `UPDATE projects SET total_calculated_budget = total_calculated_budget + ?, actual_expenses = actual_expenses + ? WHERE id = ? AND user_id = ?`,
-            [workItemCost, workItemCost, projectId, userId]
+            `UPDATE projects 
+             SET direct_cost_estimate = direct_cost_estimate + ?, 
+                 total_budget_plan_cost = total_budget_plan_cost + ? 
+             WHERE id = ?`,
+            [workItemCostForSummary, workItemCostForSummary, projectId, userId]
         );
 
         await connection.commit();
-        const updatedProject = await getFullProjectDetails(projectId, userId, connection);
+        const updatedProject = await getFullProjectDetails(projectId, userId, connection); // Use connection from transaction
         res.status(201).json(updatedProject);
+
     } catch (error) {
         if (connection) await connection.rollback();
-        console.error("Error adding work item to project:", error);
+        console.error("Error adding work item to project:", error); // This will log the detailed SQL error if it happens
         res.status(500).json({ message: "Failed to add work item to project", error: error.message });
     } finally {
         if (connection) connection.release();
@@ -312,13 +415,13 @@ exports.addWorkItemToProject = async (req, res) => {
 exports.deleteWorkItemFromProject = async (req, res) => {
     const { projectId, workItemId } = req.params;
     const { userId } = req.query;
-    if (!userId || !projectId || !workItemId) { return res.status(400).json({ message: "Required IDs missing."}); }
+    if (!projectId || !workItemId) { return res.status(400).json({ message: "Required IDs missing."}); }
 
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
         
-        const [projectOwnerRows] = await connection.query('SELECT id FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]);
+        const [projectOwnerRows] = await connection.query('SELECT id FROM projects WHERE id = ?', [projectId]);
         if (projectOwnerRows.length === 0) {
             await connection.rollback();
             return res.status(403).json({ message: "Forbidden: Project not found or not owned by user." });
@@ -332,17 +435,20 @@ exports.deleteWorkItemFromProject = async (req, res) => {
         const workItemCost = parseFloat(workItems[0].total_item_cost_snapshot);
 
         let costToReverseFromActualExpenses = 0;
-        const [linkedCF] = await connection.query('SELECT id, amount FROM project_cash_flow_entries WHERE linked_project_work_item_id = ? AND is_auto_generated = TRUE AND project_id = ?', [workItemId, projectId]);
+        const [linkedCF] = await connection.query(  `SELECT id, transaction_value AS amount
+                                                        FROM project_transactions
+                                                     WHERE related_work_item_id = ? AND project_id = ?`, [workItemId, projectId]);
         if (linkedCF.length > 0) {
             costToReverseFromActualExpenses = parseFloat(linkedCF[0].amount);
-            await connection.query('DELETE FROM project_cash_flow_entries WHERE id = ?', [linkedCF[0].id]);
+            await connection.query('DELETE FROM project_transactions WHERE id = ?', [linkedCF[0].id]);
         }
         
-        await connection.query('DELETE FROM project_work_items WHERE id = ?', [workItemId]); // Assumes ON DELETE CASCADE for components_snapshot
+        await connection.query('DELETE FROM project_work_items WHERE id = ?', [workItemId]);
 
         const [updateResult] = await connection.query(
-            'UPDATE projects SET total_calculated_budget = total_calculated_budget - ?, actual_expenses = actual_expenses - ? WHERE id = ? AND user_id = ?',
-            [workItemCost, costToReverseFromActualExpenses, projectId, userId]
+            'UPDATE projects SET direct_cost_estimate = direct_cost_estimate - ?, total_budget_plan_cost = total_budget_plan_cost - ? WHERE id = ?',
+            // Gunakan workItemCost untuk mengurangi kedua kolom
+            [workItemCost, workItemCost, projectId] // <-- DIUBAH: Parameter kedua sekarang adalah workItemCost
         );
         if (updateResult.affectedRows === 0) {
             await connection.rollback();
@@ -361,12 +467,118 @@ exports.deleteWorkItemFromProject = async (req, res) => {
     }
 };
 
+exports.updateWorkItemFromProject = async (req, res) => {
+    const { projectId, workItemId } = req.params;
+    const userId = getUserIdFromRequest(req);
+    const updatedWorkItemData = req.body; // Ini adalah calculatedWorkItemPreview yang baru
+
+    if (!userId || !projectId || !workItemId) {
+        return res.status(400).json({ message: "User, Project, and Work Item IDs are required." });
+    }
+
+    // Validasi data yang masuk (sama seperti saat add)
+    const {
+        total_item_cost_snapshot: newTotalCostSnapshot,
+        components_snapshot,
+        // ... field lainnya yang relevan
+    } = updatedWorkItemData;
+
+    if (newTotalCostSnapshot === undefined || !Array.isArray(components_snapshot)) {
+        return res.status(400).json({ message: "Invalid or incomplete updated work item data." });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Dapatkan biaya item pekerjaan LAMA untuk menghitung selisih
+        const [oldWorkItems] = await connection.query(
+            'SELECT total_item_cost_snapshot FROM project_work_items WHERE id = ? AND project_id = ?',
+            [workItemId, projectId]
+        );
+
+        if (oldWorkItems.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: "Work item not found in this project." });
+        }
+        const oldWorkItemCost = parseFloat(oldWorkItems[0].total_item_cost_snapshot);
+        const newWorkItemCost = parseFloat(newTotalCostSnapshot);
+
+        // 2. Hapus komponen snapshot LAMA yang terkait dengan item pekerjaan ini
+        await connection.query(
+            'DELETE FROM project_work_item_components_snapshot WHERE project_work_item_id = ?',
+            [workItemId]
+        );
+
+        // 3. Update data utama di tabel project_work_items
+        await connection.query(
+            `UPDATE project_work_items SET 
+                source_definition_id_snapshot = ?, definition_name_snapshot = ?, definition_key_snapshot = ?,
+                calculation_value = ?, primary_input_display_snapshot = ?, total_item_cost_snapshot = ?,
+                components_snapshot = ?, input_details_json = ?, output_details_json = ?,
+                schema_type = ?, updated_at = NOW()
+            WHERE id = ?`,
+            [
+                updatedWorkItemData.source_definition_id_snapshot, updatedWorkItemData.definition_name_snapshot, updatedWorkItemData.definition_key_snapshot,
+                parseFloat(updatedWorkItemData.calculation_value), updatedWorkItemData.primary_input_display_snapshot, newWorkItemCost,
+                JSON.stringify(updatedWorkItemData.components_snapshot || []),
+                updatedWorkItemData.input_details_snapshot_json || '{}',
+                updatedWorkItemData.output_details_snapshot_json || '{}',
+                updatedWorkItemData.calculation_schema_type_snapshot || 'SIMPLE_PRIMARY_INPUT',
+                workItemId
+            ]
+        );
+
+        // 4. Masukkan komponen snapshot BARU
+        if (components_snapshot && components_snapshot.length > 0) {
+            for (const compSnap of components_snapshot) {
+                const newSnapshotComponentId = uuidv4();
+                await connection.query(
+                    `INSERT INTO project_work_item_components_snapshot (
+                        id, project_work_item_id, component_name_snapshot, source_material_price_id_snapshot, 
+                        unit_snapshot, coefficient_snapshot, component_type_snapshot, quantity_calculated, 
+                        price_per_unit_snapshot, cost_calculated
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        newSnapshotComponentId, workItemId, compSnap.component_name_snapshot, compSnap.material_price_id_snapshot || null,
+                        compSnap.unit_snapshot, parseFloat(compSnap.coefficient_snapshot), compSnap.component_type_snapshot,
+                        parseFloat(compSnap.quantity_calculated), parseFloat(compSnap.price_per_unit_snapshot), parseFloat(compSnap.cost_calculated)
+                    ]
+                );
+            }
+        }
+
+        // 5. Update ringkasan biaya proyek dengan menghitung selisihnya
+        const costDifference = newWorkItemCost - oldWorkItemCost;
+        await connection.query(
+            `UPDATE projects 
+             SET direct_cost_estimate = direct_cost_estimate + ?, 
+                 total_budget_plan_cost = total_budget_plan_cost + ? 
+             WHERE id = ?`,
+            [costDifference, costDifference, projectId]
+        );
+
+        await connection.commit();
+        
+        // Kirim kembali data proyek yang sudah lengkap dan terupdate
+        const updatedProject = await getFullProjectDetails(projectId, userId, connection);
+        res.status(200).json(updatedProject);
+
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("Error updating work item in project:", error);
+        res.status(500).json({ message: "Failed to update work item", error: error.message });
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
 exports.addManualCashFlowEntry = async (req, res) => {
     const { projectId } = req.params;
     const { userId } = req.query;
-    const { date, description, type, amount, category_id } = req.body;
+    const { date, description, amount, category_id } = req.body;
 
-    if (!userId || !projectId || !date || !description || !type || amount === undefined || !category_id) {
+    if (!userId || !projectId || !date || !description || amount === undefined || !category_id) {
         return res.status(400).json({ message: "All fields for cash flow entry are required."});
     }
     const parsedAmount = parseFloat(amount);
@@ -379,16 +591,15 @@ exports.addManualCashFlowEntry = async (req, res) => {
         await connection.beginTransaction();
         const newCashFlowEntryId = uuidv4();
         await connection.query(
-            `INSERT INTO project_cash_flow_entries (id, project_id, entry_date, description, entry_type, amount, category_id, is_auto_generated, linked_project_work_item_id) VALUES (?, ?, ?, ?, ?, ?, ?, FALSE, NULL)`,
-            [newCashFlowEntryId, projectId, date, description.trim(), type, parsedAmount, category_id]
+        `INSERT INTO project_transactions
+            (id, project_id, transaction_date, details, transaction_value, transaction_category_id, related_work_item_id)
+        VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+        [ newCashFlowEntryId, projectId, date, description.trim(), parsedAmount, category_id ]
         );
-
         let projectUpdateQuery;
-        if (type === 'income') {
-            projectUpdateQuery = 'UPDATE projects SET actual_income = actual_income + ? WHERE id = ? AND user_id = ?';
-        } else {
-            projectUpdateQuery = 'UPDATE projects SET actual_expenses = actual_expenses + ? WHERE id = ? AND user_id = ?';
-        }
+
+        projectUpdateQuery = 'UPDATE projects SET total_budget_plan_cost = total_budget_plan_cost + ? WHERE id = ?';
+
         const [updateResult] = await connection.query(projectUpdateQuery, [parsedAmount, projectId, userId]);
         if (updateResult.affectedRows === 0) {
             await connection.rollback();
@@ -413,9 +624,9 @@ exports.addManualCashFlowEntry = async (req, res) => {
 exports.updateManualCashFlowEntry = async (req, res) => {
     const { projectId, entryId } = req.params;
     const { userId } = req.query;
-    const { date, description, type, amount, category_id } = req.body;
+    const { date, description, amount, category_id } = req.body;
 
-    if (!userId || !projectId || !entryId || !date || !description || !type || amount === undefined || !category_id) {
+    if (!userId || !projectId || !entryId || !date || !description || amount === undefined || !category_id) {
          return res.status(400).json({ message: "All fields are required for update."});
     }
     const parsedNewAmount = parseFloat(amount);
@@ -428,7 +639,9 @@ exports.updateManualCashFlowEntry = async (req, res) => {
         await connection.beginTransaction();
         
         const [oldEntries] = await connection.query(
-            'SELECT amount AS old_amount, entry_type AS old_type FROM project_cash_flow_entries WHERE id = ? AND project_id = ?',
+        `SELECT transaction_value AS old_amount, transaction_type AS old_type
+        FROM project_transactions
+        WHERE id = ? AND project_id = ?`,
             [entryId, projectId]
         );
         if (oldEntries.length === 0) {
@@ -439,8 +652,10 @@ exports.updateManualCashFlowEntry = async (req, res) => {
         const oldAmount = parseFloat(oldEntry.old_amount);
 
         const [updateResult] = await connection.query(
-            `UPDATE project_cash_flow_entries SET entry_date = ?, description = ?, entry_type = ?, amount = ?, category_id = ?, updated_at = NOW() WHERE id = ? AND project_id = ?`,
-            [date, description.trim(), type, parsedNewAmount, category_id, entryId, projectId]
+        `UPDATE project_transactions
+        SET transaction_date = ?, details = ?, transaction_value = ?, transaction_category_id = ?, updated_at = NOW()
+        WHERE id = ? AND project_id = ?`,            
+        [date, description.trim(), parsedNewAmount, category_id, entryId, projectId]
         );
         if (updateResult.affectedRows === 0) {
             await connection.rollback();
@@ -449,17 +664,17 @@ exports.updateManualCashFlowEntry = async (req, res) => {
 
         let queryReverseOld;
         if (oldEntry.old_type === 'income') {
-            queryReverseOld = 'UPDATE projects SET actual_income = actual_income - ? WHERE id = ? AND user_id = ?';
+            queryReverseOld = 'UPDATE projects SET project_price = project_price - ? WHERE id = ?';
         } else {
-            queryReverseOld = 'UPDATE projects SET actual_expenses = actual_expenses - ? WHERE id = ? AND user_id = ?';
+            queryReverseOld = 'UPDATE projects SET total_budget_plan_cost = total_budget_plan_cost - ? WHERE id = ?';
         }
         await connection.query(queryReverseOld, [oldAmount, projectId, userId]);
 
         let queryApplyNew;
-        if (type === 'income') {
-            queryApplyNew = 'UPDATE projects SET actual_income = actual_income + ? WHERE id = ? AND user_id = ?';
+        if (oldEntry.old_type === 'income') {
+            queryApplyNew = 'UPDATE projects SET project_price = project_price + ? WHERE id = ?';
         } else {
-            queryApplyNew = 'UPDATE projects SET actual_expenses = actual_expenses + ? WHERE id = ? AND user_id = ?';
+            queryApplyNew = 'UPDATE projects SET total_budget_plan_cost = total_budget_plan_cost + ? WHERE id = ?';
         }
         const [projectUpdateResult] = await connection.query(queryApplyNew, [parsedNewAmount, projectId, userId]);
         if (projectUpdateResult.affectedRows === 0) {
@@ -482,10 +697,78 @@ exports.updateManualCashFlowEntry = async (req, res) => {
     }
 };
 
+exports.updateProject = async (req, res) => {
+    const { projectId } = req.params;
+    // Gunakan helper yang sudah ada untuk mendapatkan userId
+    const userId = getUserIdFromRequest(req); 
+    const { projectName, customerName, location, startDate, dueDate, projectPrice } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ message: "User ID is required for authentication." });
+    }
+    if (!projectName || projectName.trim() === '') {
+        return res.status(400).json({ message: 'Nama proyek wajib diisi.' });
+    }
+    
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Buat query UPDATE ke database
+        const [result] = await connection.query(
+            `UPDATE projects SET 
+                project_name = ?, 
+                customer_name = ?, 
+                location = ?, 
+                start_date = ?, 
+                due_date = ?, 
+                project_price = ?,
+                updated_at = NOW() 
+             WHERE id = ? AND user_id = ?`, // <-- Klausa user_id sangat PENTING untuk keamanan
+            [
+                projectName.trim(),
+                customerName,
+                location,
+                startDate,
+                dueDate,
+                parseFloat(projectPrice) || 0,
+                projectId,
+                userId
+            ]
+        );
+
+        // 2. Periksa apakah ada baris yang terpengaruh
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            // Ini terjadi jika projectId tidak ditemukan atau bukan milik user tersebut
+            return res.status(404).json({ message: "Project not found or you do not have permission to edit it." });
+        }
+
+        // 3. Commit transaksi jika berhasil
+        await connection.commit();
+
+        // 4. Ambil data proyek yang lengkap dan terbaru untuk dikirim kembali ke frontend
+        const updatedProjectData = await getFullProjectDetails(projectId, userId, connection);
+        if (!updatedProjectData) {
+            // Seharusnya tidak terjadi, tapi sebagai pengaman
+            return res.status(404).json({ message: "Project was updated, but could not be retrieved." });
+        }
+        
+        res.status(200).json(updatedProjectData);
+
+    } catch (error) {
+        await connection.rollback(); // Rollback jika ada error
+        console.error('Error updating project:', error);
+        res.status(500).json({ message: 'Server error while updating project.', error: error.message });
+    } finally {
+        if (connection) connection.release(); // Selalu lepaskan koneksi
+    }
+};
+
 exports.deleteManualCashFlowEntry = async (req, res) => {
     const { projectId, entryId } = req.params;
     const { userId } = req.query;
-    if (!userId || !projectId || !entryId) {
+    if (!projectId || !entryId) {
          return res.status(400).json({ message: "Required IDs missing."});
     }
 
@@ -493,27 +776,29 @@ exports.deleteManualCashFlowEntry = async (req, res) => {
     try {
         await connection.beginTransaction();
         
-        const [projectOwnerRows] = await connection.query('SELECT id FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]);
+        const [projectOwnerRows] = await connection.query('SELECT id FROM projects WHERE id = ?', [projectId]);
         if (projectOwnerRows.length === 0) {
             await connection.rollback();
             return res.status(403).json({ message: "Forbidden: Project not found or not owned by user." });
         }
 
-        const [entries] = await connection.query('SELECT amount, entry_type FROM project_cash_flow_entries WHERE id = ? AND project_id = ?', [entryId, projectId]);
+        const [entries] = await connection.query(  `SELECT transaction_value AS amount, transaction_type
+   FROM project_transactions
+   WHERE id = ? AND project_id = ?`, [entryId, projectId]);
         if (entries.length === 0) {
             await connection.rollback();
             return res.status(404).json({ message: "Cash flow entry not found in this project." });
         }
         const entryToDelete = entries[0];
         
-        await connection.query('DELETE FROM project_cash_flow_entries WHERE id = ?', [entryId]);
+        await connection.query('DELETE FROM project_transactions WHERE id = ?', [entryId]);
         
         const parsedAmount = parseFloat(entryToDelete.amount);
         let projectUpdateQuery;
         if (entryToDelete.entry_type === 'income') {
-            projectUpdateQuery = 'UPDATE projects SET actual_income = actual_income - ? WHERE id = ? AND user_id = ?';
+            projectUpdateQuery = 'UPDATE projects SET project_price = project_price - ? WHERE id = ?';
         } else {
-            projectUpdateQuery = 'UPDATE projects SET actual_expenses = actual_expenses - ? WHERE id = ? AND user_id = ?';
+            projectUpdateQuery = 'UPDATE projects SET total_budget_plan_cost = total_budget_plan_cost - ? WHERE id = ?';
         }
         const [updateProjectResult] = await connection.query(projectUpdateQuery, [parsedAmount, projectId, userId]);
         if (updateProjectResult.affectedRows === 0) {
@@ -552,24 +837,19 @@ exports.getCashFlowSummaryByMonth = async (req, res) => {
 
     try {
         // SQL to get per-project income and expenses for the selected month
-        const projectMonthlyDataSql = `
-            SELECT
-                p.id AS project_id,
-                p.project_name,
-                COALESCE(SUM(CASE WHEN pcf.entry_type = 'income' THEN pcf.amount ELSE 0 END), 0) AS project_monthly_income,
-                COALESCE(SUM(CASE WHEN pcf.entry_type = 'expense' THEN pcf.amount ELSE 0 END), 0) AS project_monthly_expenses
-            FROM
-                projects p
-            LEFT JOIN
-                project_cash_flow_entries pcf ON p.id = pcf.project_id AND DATE_FORMAT(pcf.entry_date, '%Y-%m') = ?
-            WHERE
-                p.user_id = ? AND
-                p.is_archived = FALSE
-            GROUP BY
-                p.id, p.project_name
-            ORDER BY
-                p.project_name ASC;
-        `;
+const projectMonthlyDataSql = `
+  SELECT
+    p.id               AS project_id,
+    p.project_name,
+    COALESCE(SUM(CASE WHEN pt.transaction_type = 'income' THEN pt.transaction_value ELSE 0 END), 0)  AS project_monthly_income,
+    COALESCE(SUM(CASE WHEN pt.transaction_type = 'expense' THEN pt.transaction_value ELSE 0 END), 0) AS project_monthly_expenses
+  FROM projects p
+  LEFT JOIN project_transactions pt
+    ON p.id = pt.project_id AND DATE_FORMAT(pt.transaction_date, '%Y-%m') = ?
+  WHERE p.is_archived = FALSE
+  GROUP BY p.id, p.project_name
+  ORDER BY p.project_name ASC;
+`;
 
         const [projectSummariesFromDb] = await pool.query(projectMonthlyDataSql, [month, userId]);
 
@@ -591,14 +871,14 @@ exports.getCashFlowSummaryByMonth = async (req, res) => {
         });
 
         // Get all unique months that have any cash flow data for this user (for the dropdown)
-        const [monthRows] = await pool.query(
-            `SELECT DISTINCT DATE_FORMAT(pcf.entry_date, '%Y-%m') AS month_year
-             FROM project_cash_flow_entries pcf
-             JOIN projects p ON pcf.project_id = p.id
-             WHERE p.user_id = ? AND p.is_archived = FALSE AND pcf.entry_date IS NOT NULL
-             ORDER BY month_year DESC`,
-            [userId]
-        );
+const [monthRows] = await pool.query(
+  `SELECT DISTINCT DATE_FORMAT(pt.transaction_date, '%Y-%m') AS month_year
+   FROM project_transactions pt
+   JOIN projects p ON pt.project_id = p.id
+   WHERE p.is_archived = FALSE
+   ORDER BY month_year DESC`,
+  [userId]
+);
         const availableMonths = monthRows.map(r => r.month_year);
 
         res.json({

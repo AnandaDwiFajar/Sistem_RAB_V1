@@ -1,33 +1,69 @@
 // src/services/apiService.js
 // Ensure this matches your backend server's address and port
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3002/api';
+import { getAuth } from 'firebase/auth';
 
 // --- Helper for requests ---
 const request = async (url, options = {}) => {
-    const response = await fetch(url, options);
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const token = user ? await user.getIdToken() : null;
+
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  const config = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  try {
+    const response = await fetch(url, config);
+
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({ 
+        message: `Request failed with status: ${response.status}` 
+      }));
+      throw new Error(errorData.message);
     }
-    // For DELETE or other methods that might not return JSON body consistently
+
     if (response.status === 204 || response.headers.get("content-length") === "0") {
-        return { message: 'Operation successful (no content)' };
+      return { message: 'Operation successful' };
     }
     return response.json();
+  } catch (error) {
+    console.error("API Service Error:", error);
+    throw error; 
+  }
 };
 
 
-// --- User Meta Data (Units, Categories) ---
-// userId is expected to be passed to these functions from your app's auth state
+export const fetchUserProfile = (userId) => {
+    if (!userId) {
+        return Promise.reject(new Error("User ID diperlukan untuk mengambil profil."));
+    }
+    return request(`${API_BASE_URL}/users/profile/${userId}`);
+};
 
 // Units
 export const fetchUserUnits = (userId) => request(`${API_BASE_URL}/units/user/${userId}`);
 export const addUnitApi = (userId, unitName) => request(`${API_BASE_URL}/units/user/${userId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ unit_name: unitName }),
 });
-export const deleteUnitApi = (userId, unitId) => request(`${API_BASE_URL}/units/${unitId}?userId=${userId}`, { // Pass userId as query for this example
+export const updateUnitApi = (unitId, unitData) => request(`${API_BASE_URL}/units/${unitId}`, {
+    method: 'PUT',
+    body: JSON.stringify(unitData),
+});
+export const deleteUnitApi = (unitId) => request(`${API_BASE_URL}/units/${unitId}`, { 
     method: 'DELETE',
 });
 
@@ -35,10 +71,14 @@ export const deleteUnitApi = (userId, unitId) => request(`${API_BASE_URL}/units/
 export const fetchWorkItemCategories = (userId) => request(`${API_BASE_URL}/work-item-categories/user/${userId}`);
 export const addWorkItemCategoryApi = (userId, categoryName) => request(`${API_BASE_URL}/work-item-categories/user/${userId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ category_name: categoryName }),
 });
-export const deleteWorkItemCategoryApi = (userId, categoryId) => request(`${API_BASE_URL}/work-item-categories/${categoryId}?userId=${userId}`, {
+// --- FUNGSI BARU DITAMBAHKAN ---
+export const updateWorkItemCategoryApi = (categoryId, categoryData) => request(`${API_BASE_URL}/work-item-categories/${categoryId}`, {
+    method: 'PUT',
+    body: JSON.stringify(categoryData),
+});
+export const deleteWorkItemCategoryApi = (categoryId) => request(`${API_BASE_URL}/work-item-categories/${categoryId}`, {
     method: 'DELETE',
 });
 
@@ -46,10 +86,14 @@ export const deleteWorkItemCategoryApi = (userId, categoryId) => request(`${API_
 export const fetchCashFlowCategories = (userId) => request(`${API_BASE_URL}/cash-flow-categories/user/${userId}`);
 export const addCashFlowCategoryApi = (userId, categoryName) => request(`${API_BASE_URL}/cash-flow-categories/user/${userId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ category_name: categoryName }),
 });
-export const deleteCashFlowCategoryApi = (userId, categoryId) => request(`${API_BASE_URL}/cash-flow-categories/${categoryId}?userId=${userId}`, {
+// --- FUNGSI BARU DITAMBAHKAN ---
+export const updateCashFlowCategoryApi = (categoryId, categoryData) => request(`${API_BASE_URL}/cash-flow-categories/${categoryId}`, {
+    method: 'PUT',
+    body: JSON.stringify(categoryData),
+});
+export const deleteCashFlowCategoryApi = (categoryId) => request(`${API_BASE_URL}/cash-flow-categories/${categoryId}`, {
     method: 'DELETE',
 });
 
@@ -58,80 +102,75 @@ export const deleteCashFlowCategoryApi = (userId, categoryId) => request(`${API_
 export const fetchMaterialPrices = (userId) => request(`${API_BASE_URL}/material-prices/user/${userId}`);
 export const addMaterialPriceApi = (userId, priceData) => request(`${API_BASE_URL}/material-prices/user/${userId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    // priceData should be { item_name, unit_id, price }
-    body: JSON.stringify({ ...priceData, userId }), // userId in body if controller expects it there
+    body: JSON.stringify({ ...priceData, userId }),
 });
 export const updateMaterialPriceApi = (priceId, priceData, userId) => request(`${API_BASE_URL}/material-prices/${priceId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    // priceData should be { item_name, unit_id, price }
-    body: JSON.stringify({ ...priceData, userId }), // userId in body if controller expects it there
+    body: JSON.stringify({ ...priceData, userId }),
 });
-export const deleteMaterialPriceApi = (priceId, userId) => request(`${API_BASE_URL}/material-prices/${priceId}?userId=${userId}`, {
+export const deleteMaterialPriceApi = (priceId) => request(`${API_BASE_URL}/material-prices/${priceId}`, {
     method: 'DELETE',
 });
 
 // --- Work Item Definitions (Templates) ---
-// Placeholder - implement similarly
 export const fetchWorkItemDefinitions = (userId) => request(`${API_BASE_URL}/work-item-definitions/user/${userId}`);
-// ... add, update, delete for definitions (these will be more complex due to components)
-
-// --- Projects ---
-// Placeholder - implement similarly
-export const fetchProjects = (userId) => request(`${API_BASE_URL}/projects/user/${userId}`);
-export const createProjectApi = (userId, projectData) => request(`${API_BASE_URL}/projects/user/${userId}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(projectData), // { projectName }
-});
-
 export const addWorkItemDefinitionApi = (userId, definitionData) => request(`${API_BASE_URL}/work-item-definitions/user/${userId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(definitionData),
 });
-
 export const updateWorkItemDefinitionApi = (userId, definitionId, definitionData) => request(`${API_BASE_URL}/work-item-definitions/${definitionId}/user/${userId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(definitionData),
 });
-
 export const deleteWorkItemDefinitionApi = (userId, definitionId) => request(`${API_BASE_URL}/work-item-definitions/${definitionId}/user/${userId}`, {
     method: 'DELETE',
 });
 
 
+// --- Projects ---
+export const fetchProjects = (userId) => request(`${API_BASE_URL}/projects/user/${userId}`);
+export const createProjectApi = (userId, projectData) => request(`${API_BASE_URL}/projects/user/${userId}`, {
+    method: 'POST',
+    body: JSON.stringify(projectData),
+});
+export const updateProjectApi = async (userId, projectId, projectData) => {
+  const payload = {
+      ...projectData,
+      projectPrice: parseFloat(projectData.projectPrice) || 0,
+  };
+  return request(`${API_BASE_URL}/projects/${projectId}?userId=${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+  });
+};
+
 // Project Specific Operations
 export const deleteProjectApi = (userId, projectId) => request(`${API_BASE_URL}/projects/${projectId}/user/${userId}`, {
     method: 'DELETE',
 });
-
 export const addWorkItemToProjectApi = (userId, projectId, workItemData) => request(`${API_BASE_URL}/projects/${projectId}/work-items?userId=${userId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(workItemData),
 });
 
-export const deleteWorkItemFromProjectApi = (userId, projectId, workItemId) => request(`${API_BASE_URL}/projects/${projectId}/work-items/${workItemId}?userId=${userId}`, {
+export const updateWorkItemApi = (userId, projectId, workItemId, workItemData) => request(`${API_BASE_URL}/projects/${projectId}/work-items/${workItemId}?userId=${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify(workItemData),
+});
+export const deleteWorkItemFromProjectApi = (projectId, workItemId) => request(`${API_BASE_URL}/projects/${projectId}/work-items/${workItemId}`, {
     method: 'DELETE',
 });
 
 // Project Cash Flow Entries
 export const addCashFlowEntryApi = (userId, projectId, entryData) => request(`${API_BASE_URL}/projects/${projectId}/cashflow-entries?userId=${userId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(entryData),
 });
-
 export const updateCashFlowEntryApi = (userId, projectId, entryId, entryData) => request(`${API_BASE_URL}/projects/${projectId}/cashflow-entries/${entryId}?userId=${userId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(entryData),
 });
-
-export const deleteCashFlowEntryApi = (userId, projectId, entryId) => request(`${API_BASE_URL}/projects/${projectId}/cashflow-entries/${entryId}?userId=${userId}`, {
+export const deleteCashFlowEntryApi = (projectId, entryId) => request(`${API_BASE_URL}/projects/${projectId}/cashflow-entries/${entryId}`, {
     method: 'DELETE',
 });
 
@@ -139,42 +178,23 @@ export const fetchArchivedProjectsApi = (userId) =>
     request(`${API_BASE_URL}/projects/user/${userId}/archived`);
 
 export const archiveProjectApi = (userId, projectId) =>
-    request(`${API_BASE_URL}/projects/${projectId}/archive`, { // Assuming userId for auth is handled by backend or passed if needed
+    request(`${API_BASE_URL}/projects/${projectId}/archive`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }) // Send userId if controller needs it in body and not from auth/params
+        body: JSON.stringify({ userId })
     });
 
 export const unarchiveProjectApi = (userId, projectId) =>
-    request(`${API_BASE_URL}/projects/${projectId}/unarchive`, { // Assuming userId for auth is handled by backend or passed if needed
+    request(`${API_BASE_URL}/projects/${projectId}/unarchive`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }) // Send userId if controller needs it in body and not from auth/params
+        body: JSON.stringify({ userId })
     });
 
-// You might also need a function to get a single project's full details if not already covered
 export const fetchProjectByIdApi = (userId, projectId) => request(`${API_BASE_URL}/projects/${projectId}/user/${userId}`);
 
 export const fetchCashFlowSummaryByMonthApi = async (userId, month) => {
-  // month should be in 'YYYY-MM' format or null/undefined for default (current month handled by backend)
   let url = `${API_BASE_URL}/projects/summary/cashflow?userId=${encodeURIComponent(userId)}`;
   if (month) {
     url += `&month=${encodeURIComponent(month)}`;
   }
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      // Add Authorization header if your API requires it
-      // 'Authorization': `Bearer ${your_auth_token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: response.statusText }));
-    console.error('API Error fetchCashFlowSummaryByMonthApi:', errorData);
-    throw new Error(errorData.message || 'Failed to fetch cash flow summary');
-  }
-  return response.json();
+  return request(url);
 };

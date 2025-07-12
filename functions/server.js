@@ -23,6 +23,7 @@ const cashFlowCategoryRoutes = require('./routes/cashFlowCategoryRoutes');
 const materialPriceRoutes = require('./routes/materialPriceRoutes');
 const workItemDefinitionRoutes = require('./routes/workItemDefinitionRoutes');
 const projectRoutes = require('./routes/projectRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 
 app.use('/api/units', unitRoutes);
@@ -31,7 +32,7 @@ app.use('/api/cash-flow-categories', cashFlowCategoryRoutes);
 app.use('/api/material-prices', materialPriceRoutes);
 app.use('/api/work-item-definitions', workItemDefinitionRoutes);
 app.use('/api/projects', projectRoutes);
-
+app.use('/api/users', userRoutes);
 
 // --- Test Database Connection ---
 app.get('/api/health', async (req, res) => {

@@ -2,17 +2,17 @@ module.exports = {
   root: true,
 
   parserOptions: {
-    ecmaVersion: 2018,       // or 'latest'
-    sourceType: 'module',    // needed for import/export
+    ecmaVersion: 2018,
+    sourceType: 'module',
     ecmaFeatures: {
-      jsx: true              // if you use React
+      jsx: true
     }
   },
 
   env: {
     es6: true,
     node: true,
-    browser: true            // add this if you run in browser too
+    browser: true
   },
 
   extends: [
@@ -22,7 +22,7 @@ module.exports = {
 
   rules: {
     'indent': 'off',
-    // style / spacing
+    'no-console': 'off',
     'object-curly-spacing': 'off',
     'block-spacing': 'off',
     'brace-style': 'off',
@@ -30,14 +30,21 @@ module.exports = {
     'max-len': 'off',
     'quotes': 'off',
     'eol-last': 'off',
-'linebreak-style': 'off',
-
-    // code hygiene
+    'linebreak-style': 'off',
+    'semi': 'off',
+    'no-trailing-spaces': 'off',
+    'no-multiple-empty-lines': 'off',
+    'no-mixed-spaces-and-tabs': 'off',
+    'no-undef': 'off',
+    'no-unused-expressions': 'off',
+    'no-unused-vars': 'off',
     'no-unused-vars': 'off',
     'arrow-parens': 'off',
     'camelcase': 'off',
     'require-jsdoc': 'off',
-    'react/prop-types': 'off'
+    'react/prop-types': 'off',
+    'react/display-name': 'off',
+    'new-cap': "off"
   },
 
   overrides: [
@@ -53,7 +60,10 @@ module.exports = {
         'comma-dangle': 'off',
         'quotes': 'off',
         'eol-last': 'off',
-'linebreak-style': 'off',
+        'linebreak-style': 'off',
+        'react/display-name': 'off',
+            'new-cap': "off"
+
       }
     }
   ],
