@@ -1,8 +1,8 @@
 import React from 'react';
-import { DollarSign, PlusCircle, Edit3, Trash2, Settings, Info, Loader2 } from 'lucide-react';
+import { DollarSign, PlusCircle, Edit3, Trash2, Loader2 } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 
-const MaterialPricesView = ({ pricesManager, setShowManageUnitsModal, onAddNew, onEdit }) => {
+const MaterialPricesView = ({ pricesManager, onAddNew, onEdit }) => {
     if (!pricesManager) {
         return (
             <div className="flex items-center justify-center p-8 text-industrial-gray">
@@ -16,12 +16,6 @@ const MaterialPricesView = ({ pricesManager, setShowManageUnitsModal, onAddNew, 
 
     const ActionButtons = () => (
         <div className="flex justify-end items-center space-x-3 mb-6">
-            <button
-                onClick={() => setShowManageUnitsModal(true)}
-                className="flex items-center px-4 py-2 text-sm font-medium text-industrial-dark border border-industrial-gray-light rounded-md hover:bg-gray-100 transition-colors"
-            >
-                <Settings size={18} className="mr-2"/> Kelola Unit
-            </button>
             <button
                 onClick={onAddNew}
                 className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"

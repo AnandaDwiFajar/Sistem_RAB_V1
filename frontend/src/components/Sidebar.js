@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, DollarSign, ClipboardList, Archive, LogOut } from 'lucide-react';
+import { Briefcase, DollarSign, ClipboardList, Archive, LogOut, Settings } from 'lucide-react';
 
 const Sidebar = ({ userRole, currentView, setCurrentView, handleLogout }) => {
     const navItems = {
@@ -7,11 +7,13 @@ const Sidebar = ({ userRole, currentView, setCurrentView, handleLogout }) => {
             { id: 'projects', label: 'Proyek', icon: Briefcase },
             { id: 'materialPrices', label: 'Daftar Harga Satuan', icon: DollarSign },
             { id: 'workItemDefinitions', label: 'Komponen Pekerjaan', icon: ClipboardList },
+            { id: 'manageUnits', label: 'Kelola Unit', icon: Settings },
             { id: 'archivedProjects', label: 'Arsip', icon: Archive },
         ],
         staff_operasional: [
             { id: 'materialPrices', label: 'Daftar Harga Satuan', icon: DollarSign },
             { id: 'workItemDefinitions', label: 'Komponen Pekerjaan', icon: ClipboardList },
+            { id: 'manageUnits', label: 'Kelola Unit', icon: Settings },
         ],
     };
 

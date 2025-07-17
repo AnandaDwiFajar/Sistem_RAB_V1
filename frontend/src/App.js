@@ -16,6 +16,7 @@ import MaterialPricesView from './views/MaterialPricesView';
 import ProjectsView from './views/ProjectsView';
 import WorkItemDefinitionsView from './views/WorkItemDefinitionsView';
 import ArchivedProjectsListView from './views/ArchivedProjectsListView';
+import ManageUnitsView from './views/ManageUnitsView'; // Import the new view
 import ManageWorkItemCategoriesModal from './components/modals/ManageWorkItemCategoriesModal';
 import ManageUnitsModal from './components/modals/ManageUnitsModal';
 import ManageCashFlowCategoriesModal from './components/modals/ManageCashFlowCategoriesModal';
@@ -76,6 +77,7 @@ function App() {
             materialPrices: fetchMaterialPrices,
             workItemDefinitions: fetchWorkItemDefinitions,
             archivedProjects: fetchArchivedProjects,
+            manageUnits: () => {}, // No initial data fetch needed for manageUnits view
         };
         fetchMap[currentView]?.();
     }, [currentView, userId, fetchActiveProjects, fetchArchivedProjects, fetchMaterialPrices, fetchWorkItemDefinitions]);
@@ -100,7 +102,8 @@ function App() {
         materialPrices: "Daftar Harga Satuan Bahan",
         workItemDefinitions: "Definisi Komponen Pekerjaan",
         archivedProjects: "Arsip Proyek",
-        cashFlowSummary: "Ringkasan Cash Flow"
+        cashFlowSummary: "Ringkasan Cash Flow",
+        manageUnits: "Kelola Unit"
     };
 
     return (
@@ -157,7 +160,6 @@ function App() {
                         {currentView === 'materialPrices' && (
                             <MaterialPricesView
                                 pricesManager={materialPricesManager}
-                                setShowManageUnitsModal={setShowManageUnitsModal}
                                 onEdit={materialPricesManager.handleEditPrice} 
                                 onAddNew={() => {
                                     materialPricesManager.setEditingPrice(null); 
@@ -192,6 +194,9 @@ function App() {
                                 isLoading={projectsManager.isLoading}
                                 handleUnarchiveProject={projectsManager.handleUnarchiveProject}
                             />
+                        )}
+                        {currentView === 'manageUnits' && (
+                           <ManageUnitsView />
                         )}
                     </div>
                 </main>

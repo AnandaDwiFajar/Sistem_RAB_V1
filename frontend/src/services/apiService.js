@@ -54,6 +54,7 @@ export const fetchUserProfile = (userId) => {
 };
 
 // Units
+export const getUnits = (userId) => request(`${API_BASE_URL}/units/user/${userId}`);
 export const fetchUserUnits = (userId) => request(`${API_BASE_URL}/units/user/${userId}`);
 export const addUnitApi = (userId, unitName) => request(`${API_BASE_URL}/units/user/${userId}`, {
     method: 'POST',
