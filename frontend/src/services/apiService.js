@@ -89,10 +89,13 @@ export const addCashFlowCategoryApi = (userId, categoryName) => request(`${API_B
     body: JSON.stringify({ category_name: categoryName }),
 });
 // --- FUNGSI BARU DITAMBAHKAN ---
-export const updateCashFlowCategoryApi = (categoryId, categoryData) => request(`${API_BASE_URL}/cash-flow-categories/${categoryId}`, {
-    method: 'PUT',
-    body: JSON.stringify(categoryData),
-});
+export const updateCashFlowCategoryApi = (categoryId, categoryData) => {
+    return request(`${API_BASE_URL}/cash-flow-categories/${categoryId}`, {
+        method: 'PUT',
+        body: JSON.stringify(categoryData),
+    });
+};
+
 export const deleteCashFlowCategoryApi = (categoryId) => request(`${API_BASE_URL}/cash-flow-categories/${categoryId}`, {
     method: 'DELETE',
 });

@@ -112,7 +112,7 @@ export const useWorkItemDefinitions = (materialPrices, userWorkItemCategories, u
 
     const handleSaveWorkItemTemplate = useCallback(async () => {
         if (!editingTemplateData || !editingTemplateData.name?.trim()) {
-          showToast('error', 'Nama template wajib diisi.');
+          showToast('error', 'Nama pekerjaan wajib diisi.');
           return;
         }
     

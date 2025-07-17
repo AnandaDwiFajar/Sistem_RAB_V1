@@ -7,50 +7,23 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Roboto Mono', 'sans-serif'],
       },
-      typography: ({ theme }) => ({
-        DEFAULT: {
-          css: {
-            '--tw-prose-body': theme('colors.slate[700]'),
-            '--tw-prose-headings': theme('colors.slate[900]'),
-            '--tw-prose-lead': theme('colors.slate[600]'),
-            '--tw-prose-links': theme('colors.sky[600]'),
-            '--tw-prose-bold': theme('colors.slate[900]'),
-            '--tw-prose-counters': theme('colors.slate[500]'),
-            '--tw-prose-bullets': theme('colors.slate[400]'),
-            '--tw-prose-hr': theme('colors.slate[200]'),
-            '--tw-prose-quotes': theme('colors.slate[900]'),
-            '--tw-prose-quote-borders': theme('colors.slate[200]'),
-            '--tw-prose-captions': theme('colors.slate[500]'),
-            '--tw-prose-code': theme('colors.sky[700]'),
-            '--tw-prose-pre-code': theme('colors.slate[200]'),
-            '--tw-prose-pre-bg': theme('colors.slate[800]'),
-            '--tw-prose-th-borders': theme('colors.slate[300]'),
-            '--tw-prose-td-borders': theme('colors.slate[200]'),
-          },
+      colors: {
+        'industrial-light': '#f0f2f5', // Latar belakang utama
+        'industrial-white': '#ffffff',
+        'industrial-dark': '#333333', // Teks utama
+        'industrial-gray': {
+          light: '#d9d9d9', // Border
+          DEFAULT: '#8c8c8c', // Teks sekunder
+          dark: '#595959'
         },
-        invert: {
-          css: {
-            '--tw-prose-body': theme('colors.slate[300]'),
-            '--tw-prose-headings': theme('colors.sky[300]'),
-            '--tw-prose-lead': theme('colors.slate[400]'),
-            '--tw-prose-links': theme('colors.sky[400]'),
-            '--tw-prose-bold': theme('colors.slate[100]'),
-            '--tw-prose-counters': theme('colors.slate[400]'),
-            '--tw-prose-bullets': theme('colors.slate[500]'),
-            '--tw-prose-hr': theme('colors.slate[700]'),
-            '--tw-prose-quotes': theme('colors.slate[100]'),
-            '--tw-prose-quote-borders': theme('colors.slate[600]'),
-            '--tw-prose-captions': theme('colors.slate[400]'),
-            '--tw-prose-code': theme('colors.sky[300]'),
-            '--tw-prose-pre-code': theme('colors.slate[300]'),
-            '--tw-prose-pre-bg': theme('colors.slate[900]'),
-            '--tw-prose-th-borders': theme('colors.slate[600]'),
-            '--tw-prose-td-borders': theme('colors.slate[700]'),
-          },
+        'industrial-accent': { // Mengganti kuning/oranye sebelumnya
+          DEFAULT: '#005f73', // Biru baja
+          dark: '#003d4a'
         },
-      }),
+        'industrial-warning': '#ff6700' // Oranye untuk peringatan/logout
+      },
     },
   },
   plugins: [

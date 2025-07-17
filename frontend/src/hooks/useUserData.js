@@ -149,6 +149,25 @@ export const useUserData = () => {
         }
     }, [userId, showToast]);
 
+    const handleUpdateCashFlowCategory = useCallback(async (categoryId, newName) => {
+        if (!newName.trim()) {
+            showToast('error', 'Nama kategori tidak boleh kosong.');
+            return;
+        }
+        try {
+            const updatedCategory = await apiService.updateCashFlowCategoryApi(categoryId, { category_name: newName.trim() });
+            setUserCashFlowCategories(prev =>
+                prev.map(cat =>
+                    cat.id === categoryId ? { ...cat, ...updatedCategory } : cat
+                ).sort((a, b) => (a.category_name || '').localeCompare(b.category_name || ''))
+            );
+            showToast('success', `Kategori "${updatedCategory.category_name}" berhasil diperbarui.`);
+        } catch (error) {
+            console.error("Error updating cash flow category:", error);
+            showToast('error', `Gagal memperbarui kategori: ${error.message}`);
+        }
+    }, [showToast]);
+
 
     // --- DELETE HANDLERS ---
     const handleDeleteUnit = useCallback(async (unitToDelete, materialPrices, workItemTemplates) => {
@@ -266,9 +285,10 @@ export const useUserData = () => {
         handleAddNewUnit,
         handleAddNewCashFlowCategory,
         handleUpdateUnit,
-        handleUpdateWorkItemCategory, // <-- Ekspor fungsi baru
+        handleUpdateWorkItemCategory,
         handleDeleteWorkItemCategory,
         handleDeleteUnit,
         handleDeleteCashFlowCategory,
+        handleUpdateCashFlowCategory,
     };
 };

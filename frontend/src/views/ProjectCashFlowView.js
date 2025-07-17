@@ -1,156 +1,139 @@
-// src/components/ProjectCashFlowView.js
 import React from 'react';
-import { PlusCircle, Save, Edit3, Trash2, Settings } from 'lucide-react';
-import { formatCurrency } from '../utils/helpers';
+import { PlusCircle, Save, Edit3, Trash2, Settings, DollarSign } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/helpers';
 
-const ProjectCashFlowView = React.memo(({
+// --- Reusable Form Components for Consistency ---
+const FormField = ({ label, children }) => (
+    <div>
+        <label className="block text-sm font-medium text-industrial-dark mb-1">{label}</label>
+        {children}
+    </div>
+);
+const FormInput = (props) => (
+    <input {...props} className="w-full p-2 bg-white border border-industrial-gray-light rounded-md text-industrial-dark placeholder-industrial-gray focus:outline-none focus:ring-2 focus:ring-industrial-accent" />
+);
+const FormSelect = ({ children, ...props }) => (
+    <select {...props} className="w-full p-2 bg-white border border-industrial-gray-light rounded-md text-industrial-dark focus:outline-none focus:ring-2 focus:ring-industrial-accent">
+        {children}
+    </select>
+);
+
+const ProjectCashFlowView = ({
     currentProject,
+    // Props dari projectsManager
     showCashFlowForm,
     setShowCashFlowForm,
     cashFlowFormData,
-    setCashFlowFormData,
     handleCashFlowFormChange,
-    userCashFlowCategories,
-    editingCashFlowEntry,
-    setEditingCashFlowEntry,
     handleSaveCashFlowEntry,
     isSavingCashFlowEntry,
+    editingCashFlowEntry,
     handleEditCashFlowEntry,
     handleDeleteCashFlowEntry,
-    setShowManageCashFlowCategoriesModal
+    handleCancelCashFlowForm,
+    // Props dari App.js
+    userCashFlowCategories = [], // Default ke array kosong untuk keamanan
+    setShowManageCashFlowCategoriesModal,
 }) => {
-    const expenseEntries = (currentProject.cashFlowEntries || [])
-        .sort((a, b) => new Date(b.created_at || b.entry_date) - new Date(a.created_at || a.entry_date));
-    const getCategoryName = (categoryId) => userCashFlowCategories.find(c => c.id === categoryId)?.category_name;
-    return (
-        <div className="space-y-6 animate-fadeIn">
-            <div className="flex flex-wrap justify-between items-center gap-3">
-                {/* Section Title - Light Theme */}
-                <h4 className="text-xl font-medium text-gray-700">Daftar Biaya Lain-Lain:</h4>
-                <div className="flex space-x-3">
-                    {/* Buttons - Retained strong colors for actions, check contrast if needed */}
-                    <button
-                        onClick={() => setShowManageCashFlowCategoriesModal(true)}
-                        className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md shadow-md flex items-center"
-                    >
-                        <Settings size={20} className="mr-2"/> Kelola Kategori
-                    </button>
-                    <button
-                        onClick={() => {
-                            setShowCashFlowForm(!showCashFlowForm);
-                            setEditingCashFlowEntry(null);
-                            const firstCat = userCashFlowCategories.length > 0 ? userCashFlowCategories[0] : {id: ''};
-                            setCashFlowFormData({ date: new Date().toISOString().split('T')[0], description: '', type: '', amount: '', categoryId: firstCat.id });
-                        }}
-                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md shadow-md flex items-center"
-                    >
-                        <PlusCircle size={20} className="mr-2"/> {showCashFlowForm ? 'Batal' : 'Tambah Biaya Baru'}
-                    </button>
-                </div>
-            </div>
-            {showCashFlowForm && (
-                // Form Container - Light Theme
-                <div className="p-6 bg-white rounded-lg shadow-lg space-y-4 animate-fadeIn border border-gray-200">
-    <h3 className="text-xl font-medium text-gray-700">{editingCashFlowEntry ? 'Edit Biaya' : 'Tambah Biaya Lain-Lain'}</h3>
+    // --- Defensive Coding: Pastikan data adalah array ---
+    const cashFlowEntries = Array.isArray(currentProject?.cashFlowEntries) ? currentProject.cashFlowEntries : [];
+    const safeCategories = Array.isArray(userCashFlowCategories) ? userCashFlowCategories : [];
+
+    const getCategoryName = (categoryId) => safeCategories.find(c => c.id === categoryId)?.category_name || 'Tidak Diketahui';
+    const handleAddNewEntry = () => {
+        handleEditCashFlowEntry(null); // Panggil dengan null untuk membuka form baru
+    };
+
     
-    {/* Kolom deskripsi sekarang di atas */}
-    <input
-        type="text"
-        name="description"
-        value={cashFlowFormData.description}
-        onChange={handleCashFlowFormChange}
-        placeholder="Deskripsi Biaya (cth: Pembelian paku, Upah mandor)"
-        className="w-full p-3 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:ring-sky-500 focus:border-sky-500"
-    />
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-end items-center space-x-3">
+                <button
+                    onClick={() => setShowManageCashFlowCategoriesModal(true)}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-industrial-dark border border-industrial-gray-light rounded-md hover:bg-gray-100 transition-colors"
+                >
+                    <Settings size={18} className="mr-2"/> Kelola Kategori
+                </button>
+                <button
+                    onClick={showCashFlowForm ? handleCancelCashFlowForm : handleAddNewEntry} // <-- Logika yang disederhanakan
+                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
+                >
+                    <PlusCircle size={18} className="mr-2"/> {showCashFlowForm ? 'Batal' : 'Tambah Biaya Lain'}
+                </button>
+            </div>
 
-    {/* Kolom Jumlah dan Kategori */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-            type="number"
-            name="amount"
-            value={cashFlowFormData.amount}
-            onChange={handleCashFlowFormChange}
-            placeholder="Jumlah (Rp)"
-            min="0"
-            className="p-3 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:ring-sky-500 focus:border-sky-500"
-        />
-        <select
-            name="categoryId"
-            value={cashFlowFormData.categoryId}
-            onChange={handleCashFlowFormChange}
-            className="p-3 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:ring-sky-500 focus:border-sky-500"
-        >
-            <option value="">-- Pilih Kategori --</option>
-            {userCashFlowCategories
-                                .filter(cat => cat.category_name !== 'Harga Proyek')
-                                .sort((a, b) => a.category_name.localeCompare(b.category_name))
-                                .map(cat => (
-                                    <option key={cat.id} value={cat.id}>
-                                        {cat.category_name}
-                                    </option>
-                                ))}
-        </select>
-    </div>
-
-    {/* Tombol Aksi Form */}
-    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-4">
-        <button
-            onClick={() => { setShowCashFlowForm(false); setEditingCashFlowEntry(null); }}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
-        >
-            Batal
-        </button>
-        <button
-            onClick={handleSaveCashFlowEntry}
-            disabled={isSavingCashFlowEntry}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md flex items-center disabled:opacity-50 transition-colors"
-        >
-            <Save size={18} className="mr-2"/>
-            {isSavingCashFlowEntry ? 'Menyimpan...' : 'Simpan Biaya'}
-        </button>
-    </div>
-</div>
-
+            {showCashFlowForm && (
+                <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg space-y-4 animate-fadeIn">
+                    <h3 className="text-xl font-bold text-industrial-accent pb-4 border-b border-industrial-gray-light">
+                        {editingCashFlowEntry ? 'Edit Biaya Lain' : 'Tambah Biaya Lain Baru'}
+                    </h3>
+                    <div className="space-y-4">
+                        <FormField label="Deskripsi Biaya">
+                            <FormInput
+                                type="text"
+                                name="description"
+                                value={cashFlowFormData.description}
+                                onChange={handleCashFlowFormChange}
+                                placeholder="Contoh: Pembelian paku, Upah mandor"
+                            />
+                        </FormField>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField label="Jumlah (Rp)">
+                                <FormInput
+                                    type="number"
+                                    name="amount"
+                                    value={cashFlowFormData.amount}
+                                    onChange={handleCashFlowFormChange}
+                                    placeholder="500000"
+                                    min="0"
+                                />
+                            </FormField>
+                            <FormField label="Kategori">
+                                <FormSelect name="categoryId" value={cashFlowFormData.categoryId} onChange={handleCashFlowFormChange}>
+                                    <option value="">-- Pilih Kategori --</option>
+                                    {safeCategories.filter(cat => cat.category_name !== 'Harga Proyek').map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.category_name}</option>
+                                    ))}
+                                </FormSelect>
+                            </FormField>
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-industrial-gray-light">
+                        <button type="button" onClick={handleCancelCashFlowForm} className="px-5 py-2 text-sm font-medium text-industrial-dark bg-industrial-gray-light/50 border border-industrial-gray-light rounded-md hover:bg-industrial-gray-light">
+                            Batal
+                        </button>
+                        <button onClick={handleSaveCashFlowEntry} disabled={isSavingCashFlowEntry} className="inline-flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark disabled:bg-industrial-gray">
+                            <Save size={18} className="mr-2"/> {isSavingCashFlowEntry ? 'Menyimpan...' : 'Simpan'}
+                        </button>
+                    </div>
+                </div>
             )}
-            {expenseEntries.length > 0 ? (
-                // Table Container - Light Theme
-                <div className="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
+
+            {cashFlowEntries.length > 0 ? (
+                <div className="overflow-x-auto bg-white border border-industrial-gray-light rounded-lg shadow-sm">
                     <table className="w-full min-w-max text-left">
-                        {/* Table Head - Light Theme */}
-                        <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <thead className="bg-gray-50 border-b border-industrial-gray-light">
                             <tr>
-                                <th className="p-4">Deskripsi</th>
-                                <th className="p-4">Kategori</th>
-                                <th className="p-4 text-right">Jumlah (Rp)</th>
-                                <th className="p-4 text-right">Aksi</th>
+                                <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Deskripsi</th>
+                                <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Kategori</th>
+                                <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Jumlah</th>
+                                <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-center">Aksi</th>
                             </tr>
                         </thead>
-                        {/* Table Body - Light Theme */}
-                        <tbody>
-                            {expenseEntries.map(entry => (
-                                <tr key={entry.id} className={`border-b border-gray-200 hover:bg-gray-50 ${entry.is_auto_generated ? 'opacity-70' : (entry.entry_type === 'income' ? 'bg-green-50' : 'bg-red-50')}`}>
-                                    <td className="p-4 text-gray-700">
-                                        {entry.description}
-                                        {entry.is_auto_generated ? (
-                                            <span className="text-xs text-sky-600 ml-1">(Otomatis)</span>
-                                        ) : null}
+                        <tbody className="text-industrial-dark">
+                            {cashFlowEntries.map(entry => (
+                                <tr key={entry.id} className="border-b border-industrial-gray-light hover:bg-gray-50/50">
+                                    <td className="p-4 font-medium">{entry.description}</td>
+                                    <td className="p-4 text-industrial-gray-dark">{getCategoryName(entry.category_id)}</td>
+                                    <td className={`p-4 font-semibold text-right ${entry.entry_type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                        {entry.entry_type === 'income' ? '+' : '-'} {formatCurrency(parseFloat(entry.amount))}
                                     </td>
-                                    <td className="p-4 text-gray-600">{getCategoryName(entry.category_id)}</td>
-                                    <td className={`p-4 text-right font-semibold ${entry.entry_type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{entry.entry_type === 'income' ? '+' : '-'} {formatCurrency(parseFloat(entry.amount))}</td>
-                                    <td className="p-4 text-right space-x-2">
+                                    <td className="p-4 text-center">
                                         {!entry.is_auto_generated && (
                                             <>
-                                                {/* Action Icons - Light Theme */}
-                                                <button onClick={() => handleEditCashFlowEntry(entry)} className="p-2 text-yellow-500 hover:text-yellow-600"><Edit3 size={18}/></button>
-                                                <button 
-                                                onClick={() => {
-                                                    console.log(`Mencoba menghapus entri: ${entry.id}`);
-                                                    handleDeleteCashFlowEntry(entry.id);
-                                                }} 
-                                                className="p-2 text-red-600 hover:text-red-700"
-                                            >
-                                                <Trash2 size={18}/>
-                                            </button>                                            </>
+                                                <button onClick={() => handleEditCashFlowEntry(entry)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Edit3 size={16}/></button>
+                                                <button onClick={() => handleDeleteCashFlowEntry(entry.id)} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus"><Trash2 size={16}/></button>
+                                            </>
                                         )}
                                     </td>
                                 </tr>
@@ -159,11 +142,16 @@ const ProjectCashFlowView = React.memo(({
                     </table>
                 </div>
             ) : (
-                // "No entries" text - Light Theme
-                <p className="text-gray-500 text-center py-4">Belum ada daftar biaya lain-lain untuk proyek ini.</p>
+                !showCashFlowForm && (
+                     <div className="text-center py-12 px-6 border-2 border-dashed border-industrial-gray-light rounded-lg">
+                        <DollarSign size={48} className="mx-auto text-industrial-gray" />
+                        <h3 className="mt-4 text-xl font-semibold text-industrial-dark">Belum Ada Biaya Lain</h3>
+                        <p className="mt-2 text-industrial-gray-dark">Tambahkan biaya lain untuk proyek ini.</p>
+                    </div>
+                )
             )}
         </div>
     );
-});
+};
 
-export default ProjectCashFlowView;
+export default React.memo(ProjectCashFlowView);

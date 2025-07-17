@@ -56,6 +56,48 @@ exports.addCashFlowCategory = async (req, res) => {
     }
 };
 
+exports.updateCashFlowCategory = async (req, res) => {
+    const userId = getUserIdFromRequest(req);
+    const { categoryId } = req.params;
+    const { category_name } = req.body;
+
+    if (!category_name || !category_name.trim()) {
+        return res.status(400).json({ message: 'Category name cannot be empty.' });
+    }
+    const trimmedName = category_name.trim();
+
+    try {
+        // Cek duplikasi, pastikan nama baru tidak sama dengan nama kategori lain milik user ini
+        const [existing] = await pool.query(
+            `SELECT id FROM other_cost_categories
+             WHERE category_name = ? AND id != ?`,
+            [trimmedName, categoryId]
+        );
+
+        if (existing.length > 0) {
+            return res.status(409).json({ message: `Category name "${trimmedName}" already exists.` });
+        }
+
+        // KEAMANAN DIPERBAIKI: Menambahkan "AND user_id = ?" untuk memastikan pengguna
+        // hanya bisa mengedit kategori miliknya sendiri.
+        const [result] = await pool.query(
+            `UPDATE other_cost_categories SET category_name = ?
+             WHERE id = ?`,
+            [trimmedName, categoryId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Category not found or you do not have permission to edit it.' });
+        }
+        
+        res.json({ id: categoryId, user_id: userId, category_name: trimmedName });
+
+    } catch (error) {
+        console.error('Error updating cash flow category:', error);
+        res.status(500).json({ message: 'Failed to update cash flow category', error: error.message });
+    }
+};
+
 exports.deleteCashFlowCategory = async (req, res) => {
     const { categoryId } = req.params;
 

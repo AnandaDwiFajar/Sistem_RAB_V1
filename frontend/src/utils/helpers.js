@@ -11,6 +11,23 @@ export const formatCurrency = (amount, withColor = false) => {
   return formatted;
 };
 
+export const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString.split('T')[0].replace(/-/g, '/'));
+        if (isNaN(date.getTime())) {
+            return 'Invalid Date';
+        }
+        return date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+    } catch (error) {
+        return 'Invalid Date';
+    }
+};
+
 export const generateId = () => crypto.randomUUID();
 
 export const slugify = (text) => {

@@ -31,9 +31,6 @@ router.delete(
     projectController.deleteWorkItemFromProject
 );
 
-// --- ADD THIS NEW ROUTE for Manual Cash Flow Entries ---
-// This will handle POST requests to /api/projects/:projectId/cashflow-entries
-// (assuming your projectRoutes is mounted at /api/projects in your main server file)
 router.post(
     '/:projectId/cashflow-entries',
     // protect, // Apply authentication middleware if needed
@@ -51,6 +48,5 @@ router.put(
     projectController.updateManualCashFlowEntry // Needs to be implemented
 );
 
-router.get('/summary/cashflow', projectController.getCashFlowSummaryByMonth);
 
 module.exports = router;

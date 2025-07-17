@@ -77,7 +77,7 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
     };
     const mainNavItems = navigationMenuItems[userRole] || [];
 
-    const [projectNameError, setProjectNameError] = useState(null);      
+    const [projectNameError, setProjectNameError] = useState(null);
     
       const handleWorkItemFormChange = useCallback((e, paramKeyToUpdate = null) => {
         const { name, value } = e.target;
@@ -670,16 +670,37 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
     }, [cashFlowFormData, currentProject, userId, apiService, editingCashFlowEntry, setCurrentProject, setProjects, showToast, setShowCashFlowForm, setEditingCashFlowEntry, userCashFlowCategories, setCashFlowFormData, setIsSavingCashFlowEntry]);
 
     const handleEditCashFlowEntry = useCallback((entry) => {
-        setEditingCashFlowEntry(entry);
-        setCashFlowFormData({
-          date: entry.entry_date.split('T')[0],
-          description: entry.description,
-          type: entry.entry_type,
-          amount: entry.amount.toString(),
-          categoryId: entry.category_id
-        });
-        setShowCashFlowForm(true);
-    }, [setEditingCashFlowEntry, setCashFlowFormData, setShowCashFlowForm]);
+      if (entry) {
+          // MODE EDIT: 'entry' berisi data, isi form dengannya.
+          setEditingCashFlowEntry(entry);
+          setCashFlowFormData({
+              date: entry.entry_date ? entry.entry_date.split('T')[0] : new Date().toISOString().split('T')[0],
+              description: entry.description || '',
+              type: entry.entry_type || 'expense', // default ke 'expense' jika tidak ada
+              amount: entry.amount?.toString() || '',
+              categoryId: entry.category_id || ''
+          });
+      } else {
+          // MODE TAMBAH BARU: 'entry' adalah null, reset form ke state awal.
+          setEditingCashFlowEntry(null);
+          const firstCategory = userCashFlowCategories.length > 0 ? userCashFlowCategories[0] : { id: '' };
+          setCashFlowFormData({
+              date: new Date().toISOString().split('T')[0],
+              description: '',
+              type: 'expense', // Selalu default ke 'expense' untuk entri baru
+              amount: '',
+              categoryId: '' // Biarkan kosong agar user memilih
+          });
+      }
+      setShowCashFlowForm(true); // Tampilkan form dalam kedua kasus
+  }, [userCashFlowCategories]); // Tambahkan dependensi
+
+  // Tambahkan fungsi baru untuk membatalkan
+  const handleCancelCashFlowForm = useCallback(() => {
+      setShowCashFlowForm(false);
+      setEditingCashFlowEntry(null);
+      setCashFlowFormData({ date: new Date().toISOString().split('T')[0], description: '', type: 'expense', amount: '', categoryId: '' });
+  }, []);
 
     const handleDeleteCashFlowEntry = useCallback(async (entryId) => {
       const isConfirmed = await showConfirm({
@@ -736,6 +757,37 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
         } catch (error) { console.error("Error deleting cash flow category:", error); showToast('error', `Failed to delete cash flow category: ${error.message}`); }
       }, [showConfirm, userId, apiService, setUserCashFlowCategories, showToast, cashFlowFormData, setCashFlowFormData, userCashFlowCategories, projects, currentProject]);
 
+      const handleUpdateCashFlowCategory = useCallback(async (categoryId, newName) => {
+        // Validasi dasar
+        if (!newName || !newName.trim()) {
+            showToast('error', 'Nama kategori tidak boleh kosong.');
+            return;
+        }
+
+        // Cek duplikasi (tidak termasuk kategori yang sedang diedit)
+        const isDuplicate = userCashFlowCategories.some(
+            cat => cat.category_name.toLowerCase() === newName.trim().toLowerCase() && cat.id !== categoryId
+        );
+
+        if (isDuplicate) {
+            showToast('error', `Kategori dengan nama "${newName}" sudah ada.`);
+            return;
+        }
+        
+        try {
+            const updatedCategory = await apiService.updateCashFlowCategoryApi(categoryId, { category_name: newName.trim() });
+            
+            // Perbarui state secara lokal
+            setUserCashFlowCategories(prev => 
+                prev.map(cat => cat.id === categoryId ? updatedCategory : cat)
+                    .sort((a, b) => a.category_name.localeCompare(b.category_name))
+            );
+            showToast('success', 'Kategori berhasil diperbarui!');
+        } catch (error) {
+            console.error("Error updating cash flow category:", error);
+            showToast('error', `Gagal memperbarui kategori: ${error.message}`);
+        }
+    }, [userCashFlowCategories, showToast, setUserCashFlowCategories]);
     // AI Insights
     const handleFetchProjectInsights = useCallback(async () => {
         if (!currentProject) { showToast('error', 'No project selected.'); return; }
@@ -910,5 +962,7 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
         handleStartEditWorkItem,
         handleCancelEditWorkItem,
         handleSaveWorkItem,
+        handleCancelCashFlowForm,
+        handleUpdateCashFlowCategory,
     };
 };

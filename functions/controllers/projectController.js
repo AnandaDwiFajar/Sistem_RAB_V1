@@ -96,8 +96,7 @@ async function getFullProjectDetails(projectId, userId, dbClient) {
       SELECT 
         pt.id, pt.transaction_date AS entry_date, pt.details AS description,
         pt.transaction_value AS amount,
-        pt.transaction_category_id AS category_id, udt.category_name AS cash_flow_category_name,
-        pt.related_work_item_id AS linked_project_work_item_id
+        pt.transaction_category_id AS category_id, udt.category_name AS cash_flow_category_name
       FROM project_transactions pt
       LEFT JOIN other_cost_categories udt ON pt.transaction_category_id = udt.id
       WHERE pt.project_id = ?
@@ -437,7 +436,7 @@ exports.deleteWorkItemFromProject = async (req, res) => {
         let costToReverseFromActualExpenses = 0;
         const [linkedCF] = await connection.query(  `SELECT id, transaction_value AS amount
                                                         FROM project_transactions
-                                                     WHERE related_work_item_id = ? AND project_id = ?`, [workItemId, projectId]);
+                                                     WHERE project_id = ?`, [projectId]);
         if (linkedCF.length > 0) {
             costToReverseFromActualExpenses = parseFloat(linkedCF[0].amount);
             await connection.query('DELETE FROM project_transactions WHERE id = ?', [linkedCF[0].id]);
@@ -592,8 +591,8 @@ exports.addManualCashFlowEntry = async (req, res) => {
         const newCashFlowEntryId = uuidv4();
         await connection.query(
         `INSERT INTO project_transactions
-            (id, project_id, transaction_date, details, transaction_value, transaction_category_id, related_work_item_id)
-        VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+            (id, project_id, transaction_date, details, transaction_value, transaction_category_id)
+        VALUES (?, ?, ?, ?, ?, ?)`,
         [ newCashFlowEntryId, projectId, date, description.trim(), parsedAmount, category_id ]
         );
         let projectUpdateQuery;
@@ -639,7 +638,7 @@ exports.updateManualCashFlowEntry = async (req, res) => {
         await connection.beginTransaction();
         
         const [oldEntries] = await connection.query(
-        `SELECT transaction_value AS old_amount, transaction_type AS old_type
+        `SELECT transaction_value AS old_amount
         FROM project_transactions
         WHERE id = ? AND project_id = ?`,
             [entryId, projectId]
@@ -782,7 +781,7 @@ exports.deleteManualCashFlowEntry = async (req, res) => {
             return res.status(403).json({ message: "Forbidden: Project not found or not owned by user." });
         }
 
-        const [entries] = await connection.query(  `SELECT transaction_value AS amount, transaction_type
+        const [entries] = await connection.query(  `SELECT transaction_value AS amount
    FROM project_transactions
    WHERE id = ? AND project_id = ?`, [entryId, projectId]);
         if (entries.length === 0) {
@@ -815,86 +814,5 @@ exports.deleteManualCashFlowEntry = async (req, res) => {
         res.status(500).json({ message: "Failed to delete cash flow entry", detail: error.message });
     } finally {
         if (connection) connection.release();
-    }
-};
-
-exports.getCashFlowSummaryByMonth = async (req, res) => {
-    const userId = getUserIdFromRequest(req);
-    let { month } = req.query; // Expecting YYYY-MM format from frontend
-
-    if (!userId) return res.status(401).json({ message: "User ID is required." });
-
-    // Default to current month if not provided by the frontend
-    if (!month) {
-        const today = new Date();
-        const year = today.getFullYear();
-        // JavaScript months are 0-indexed, so add 1. Pad with '0' if needed.
-        const currentMonthNum = (today.getMonth() + 1).toString().padStart(2, '0');
-        month = `${year}-${currentMonthNum}`;
-    } else if (!/^\d{4}-\d{2}$/.test(month)) { // Validate YYYY-MM format
-        return res.status(400).json({ message: "Invalid month format. Please use YYYY-MM." });
-    }
-
-    try {
-        // SQL to get per-project income and expenses for the selected month
-const projectMonthlyDataSql = `
-  SELECT
-    p.id               AS project_id,
-    p.project_name,
-    COALESCE(SUM(CASE WHEN pt.transaction_type = 'income' THEN pt.transaction_value ELSE 0 END), 0)  AS project_monthly_income,
-    COALESCE(SUM(CASE WHEN pt.transaction_type = 'expense' THEN pt.transaction_value ELSE 0 END), 0) AS project_monthly_expenses
-  FROM projects p
-  LEFT JOIN project_transactions pt
-    ON p.id = pt.project_id AND DATE_FORMAT(pt.transaction_date, '%Y-%m') = ?
-  WHERE p.is_archived = FALSE
-  GROUP BY p.id, p.project_name
-  ORDER BY p.project_name ASC;
-`;
-
-        const [projectSummariesFromDb] = await pool.query(projectMonthlyDataSql, [month, userId]);
-
-        let totalOverallIncome = 0;
-        let totalOverallExpenses = 0;
-
-        const formattedProjectSummaries = projectSummariesFromDb.map(ps => {
-            const income = parseFloat(ps.project_monthly_income);
-            const expenses = parseFloat(ps.project_monthly_expenses);
-            totalOverallIncome += income;
-            totalOverallExpenses += expenses;
-            return {
-                id: ps.project_id,
-                project_name: ps.project_name,
-                monthly_income: income,
-                monthly_expenses: expenses,
-                monthly_net_cash_flow: income - expenses,
-            };
-        });
-
-        // Get all unique months that have any cash flow data for this user (for the dropdown)
-const [monthRows] = await pool.query(
-  `SELECT DISTINCT DATE_FORMAT(pt.transaction_date, '%Y-%m') AS month_year
-   FROM project_transactions pt
-   JOIN projects p ON pt.project_id = p.id
-   WHERE p.is_archived = FALSE
-   ORDER BY month_year DESC`,
-  [userId]
-);
-        const availableMonths = monthRows.map(r => r.month_year);
-
-        res.json({
-            selectedMonth: month, // Echo back the month for which data was processed
-            overallSummary: {
-                totalOverallIncome,
-                totalOverallExpenses,
-                totalOverallNetCashFlow: totalOverallIncome - totalOverallExpenses,
-            },
-            // Only include projects that had some activity in that month, or all if you prefer
-            projectMonthlySummaries: formattedProjectSummaries.filter(p => p.monthly_income > 0 || p.monthly_expenses > 0),
-            availableMonths, // This list helps the frontend populate its month selector
-        });
-
-    } catch (error) {
-        console.error("Error fetching cash flow summary by month:", error);
-        res.status(500).json({ message: "Failed to fetch cash flow summary", error: error.message });
     }
 };

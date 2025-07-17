@@ -1,146 +1,115 @@
-// src/components/CurrentProjectDetailsHeader.js (SUDAH DIREVISI)
-
 import React from 'react';
-import { formatCurrency } from '../utils/helpers';
-// DIUBAH: Menambahkan ikon-ikon baru untuk detail proyek
-import { 
-    Download, BrainCircuit, List, LineChart, User, MapPin, Calendar, Award 
-} from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/helpers';
+import { Download, BrainCircuit, List, LineChart, User, MapPin, Calendar, Award, DollarSign, Target, Percent } from 'lucide-react';
 
-// BARU: Helper kecil untuk memformat tanggal agar lebih mudah dibaca
-const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    // Mengonversi tanggal dari format YYYY-MM-DD ke format lokal Indonesia
-    const date = new Date(dateString.split('T')[0].replace(/-/g, '/'));
-    return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
+const StatCard = ({ icon, label, value, colorClass = 'text-industrial-accent' }) => {
+    const IconComponent = icon;
+    return (
+        <div className="bg-white p-4 rounded-lg border border-industrial-gray-light shadow-sm flex items-start">
+            <div className={`mr-4 mt-1 ${colorClass}`}>
+                <IconComponent size={24} />
+            </div>
+            <div>
+                <p className="text-sm text-industrial-gray-dark font-medium">{label}</p>
+                <p className="text-xl font-bold text-industrial-dark">{value}</p>
+            </div>
+        </div>
+    );
 };
 
-
 const CurrentProjectDetailsHeader = React.memo(({
- userRole,
-currentProject,
- isFetchingProjectInsights,
-handleFetchProjectInsights,
-setShowInsightsModal,
- currentProjectView,
- setCurrentProjectView,
- handleGenerateProjectReport,
- isGeneratingReport, 
+    userRole,
+    currentProject,
+    isFetchingProjectInsights,
+    handleFetchProjectInsights,
+    currentProjectView,
+    setCurrentProjectView,
+    handleGenerateProjectReport,
+    isGeneratingReport,
 }) => {
-    const parsedProjectPrice = parseFloat(currentProject.project_price);
-    const parsedTotalBudget = parseFloat(currentProject.direct_cost_estimate);
-    const total_budget_plan_cost = parseFloat(currentProject.total_budget_plan_cost);
-    const projectPrice = isNaN(parsedProjectPrice) ? 0 : parsedProjectPrice;
-    const estimatedProfit = projectPrice - total_budget_plan_cost;   
- if (!currentProject) return null;
+    if (!currentProject) return null;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-4">
-        <div className="mb-4 md:mb-0">
-          <h2 className="text-3xl font-bold text-gray-800" title={currentProject.project_name}>
-{currentProject.project_name}
-          </h2>
-        </div>
-                {(userRole === 'admin') && (
-                    <div className="flex items-center space-x-3">
-                        <button onClick={handleFetchProjectInsights} disabled={isFetchingProjectInsights} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 transition-colors">
-                            <BrainCircuit size={16} className="mr-2"/>
-                            {isFetchingProjectInsights ? 'Menganalisis...' : 'Get AI Insights'}
-                        </button>
-                        <button onClick={handleGenerateProjectReport} disabled={isGeneratingReport} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-                            <Download size={16} className="mr-2"/>
-                            {isGeneratingReport ? 'Membuat...' : 'Buat Dokumen RAB'}
-                        </button>
-                    </div>
-                )}
-      </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 p-4 bg-gray-50 rounded-lg border">
-                <div className="flex items-start">
-                    <Award size={20} className="mr-3 mt-1 text-green-600 flex-shrink-0" />
+    const projectPrice = parseFloat(currentProject.project_price) || 0;
+    const totalBudgetPlanCost = parseFloat(currentProject.total_budget_plan_cost) || 0;
+    const estimatedProfit = projectPrice - totalBudgetPlanCost;
+    const profitMargin = projectPrice > 0 ? (estimatedProfit / projectPrice) * 100 : 0;
+
+    return (
+        <div className="space-y-6">
+            {/* Project Info Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="flex items-center bg-gray-50 p-3 rounded-lg border border-industrial-gray-light">
+                    <User size={20} className="mr-3 text-industrial-gray-dark" />
                     <div>
-                        <p className="text-sm text-gray-500">Nilai Proyek</p>
-                        <p className="text-lg font-semibold text-gray-800">
-                            {formatCurrency(currentProject.project_price || 0)}
-                        </p>
+                        <p className="text-xs text-industrial-gray">Pelanggan</p>
+                        <p className="font-semibold text-industrial-dark">{currentProject.customer_name || '-'}</p>
                     </div>
                 </div>
-                <div className="flex items-start">
-                    <User size={20} className="mr-3 mt-1 text-blue-600 flex-shrink-0" />
+                <div className="flex items-center bg-gray-50 p-3 rounded-lg border border-industrial-gray-light">
+                    <MapPin size={20} className="mr-3 text-industrial-gray-dark" />
                     <div>
-                        <p className="text-sm text-gray-500">Pelanggan</p>
-                        <p className="text-lg font-semibold text-gray-800">
-                            {currentProject.customer_name || '-'}
-                        </p>
+                        <p className="text-xs text-industrial-gray">Lokasi</p>
+                        <p className="font-semibold text-industrial-dark">{currentProject.location || '-'}</p>
                     </div>
                 </div>
-                <div className="flex items-start">
-                    <MapPin size={20} className="mr-3 mt-1 text-red-600 flex-shrink-0" />
+                <div className="flex items-center bg-gray-50 p-3 rounded-lg border border-industrial-gray-light col-span-1 lg:col-span-2">
+                    <Calendar size={20} className="mr-3 text-industrial-gray-dark" />
                     <div>
-                        <p className="text-sm text-gray-500">Lokasi</p>
-                        <p className="text-lg font-semibold text-gray-800">
-                            {currentProject.location || '-'}
-                        </p>
-                    </div>
-                </div>
-                
-                {/* Periode Proyek */}
-                <div className="flex items-start">
-                    <Calendar size={20} className="mr-3 mt-1 text-amber-600 flex-shrink-0" />
-                    <div>
-                        <p className="text-sm text-gray-500">Periode</p>
-                        <p className="text-lg font-semibold text-gray-800">
+                        <p className="text-xs text-industrial-gray">Periode Proyek</p>
+                        <p className="font-semibold text-industrial-dark">
                             {formatDate(currentProject.start_date)} → {formatDate(currentProject.due_date)}
                         </p>
                     </div>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div className="p-4 bg-red-100 rounded-lg shadow">
-                                <h5 className="text-sm text-red-700 font-medium">Estimasi Biaya Langsung</h5>
-                                <p className="text-2xl font-bold text-red-800">{formatCurrency(parsedTotalBudget)}</p>
-                            </div>
-                            <div className="p-4 bg-red-100 rounded-lg shadow">
-                                <h5 className="text-sm text-red-700 font-medium">Total Rencana Anggaran Biaya (Total RAB)</h5>
-                                <p className="text-2xl font-bold text-red-800">{formatCurrency(total_budget_plan_cost)}</p>
-                            </div>
-                            <div className="p-4 bg-sky-100 rounded-lg shadow">
-                                <h5 className="text-sm text-sky-700 font-medium">Estimasi Keuntungan</h5>
-                                <p className={`text-2xl font-bold ${estimatedProfit >= 0 ? 'text-sky-800' : 'text-red-700'}`}>
-                                    {formatCurrency(estimatedProfit)}
-                                </p>
-                            </div>
-                </div>
 
-      {/* --- DIUBAH: Bagian Tab sekarang hanya muncul untuk admin --- */}
-            {(userRole === 'admin') && (
-                <div className="flex space-x-2 border-b border-gray-200">
-                    <button
-                        onClick={() => setCurrentProjectView('workItems')}
-                        className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors flex items-center ${
-                            currentProjectView === 'workItems' ? 'border-b-2 border-sky-500 text-sky-600 bg-sky-50' : 'text-gray-600 hover:text-sky-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        <List size={16} className="inline-block mr-2" />
-                        Uraian Pekerjaan
-                    </button>
-                    <button
-                        onClick={() => setCurrentProjectView('cashFlow')}
-                        className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors flex items-center ${
-                            currentProjectView === 'cashFlow' ? 'border-b-2 border-sky-500 text-sky-600 bg-sky-50' : 'text-gray-600 hover:text-sky-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        <LineChart size={16} className="inline-block mr-2" />
-                        Biaya Lain-Lain
-                    </button>
+            {/* Financial Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <StatCard icon={Award} label="Nilai Proyek" value={formatCurrency(projectPrice)} colorClass="text-green-600" />
+                <StatCard icon={Target} label="Total RAB" value={formatCurrency(totalBudgetPlanCost)} colorClass="text-red-600" />
+                <StatCard icon={DollarSign} label="Estimasi Keuntungan" value={formatCurrency(estimatedProfit)} colorClass={estimatedProfit >= 0 ? "text-blue-600" : "text-red-600"} />
+                <StatCard icon={Percent} label="Margin Keuntungan" value={`${profitMargin.toFixed(1)}%`} colorClass={profitMargin >= 0 ? "text-blue-600" : "text-red-600"} />
+            </div>
+
+            {userRole === 'admin' && (
+                <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-industrial-gray-light">
+                    {/* Tabs */}
+                    <div className="flex space-x-2 mb-4 sm:mb-0">
+                        <button
+                            onClick={() => setCurrentProjectView('workItems')}
+                            className={`px-4 py-2 text-sm font-semibold rounded-md flex items-center transition-colors ${
+                                currentProjectView === 'workItems' ? 'bg-industrial-accent text-white shadow-sm' : 'text-industrial-dark hover:bg-gray-100'
+                            }`}
+                        >
+                            <List size={16} className="mr-2" />
+                            Uraian Pekerjaan
+                        </button>
+                        <button
+                            onClick={() => setCurrentProjectView('cashFlow')}
+                            className={`px-4 py-2 text-sm font-semibold rounded-md flex items-center transition-colors ${
+                                currentProjectView === 'cashFlow' ? 'bg-industrial-accent text-white shadow-sm' : 'text-industrial-dark hover:bg-gray-100'
+                            }`}
+                        >
+                            <LineChart size={16} className="mr-2" />
+                            Biaya Lain-Lain
+                        </button>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-3">
+                        <button onClick={handleFetchProjectInsights} disabled={isFetchingProjectInsights} className="flex items-center px-4 py-2 text-sm font-medium text-industrial-accent border border-industrial-accent rounded-md hover:bg-industrial-accent hover:text-white disabled:bg-industrial-gray-light disabled:text-industrial-gray disabled:border-industrial-gray-light transition-colors">
+                            <BrainCircuit size={16} className="mr-2"/>
+                            {isFetchingProjectInsights ? 'Menganalisis...' : 'AI Insights'}
+                        </button>
+                        <button onClick={handleGenerateProjectReport} disabled={isGeneratingReport} className="flex items-center px-4 py-2 text-sm font-medium text-industrial-accent border border-industrial-accent rounded-md hover:bg-industrial-accent hover:text-white disabled:bg-industrial-gray-light disabled:text-industrial-gray disabled:border-industrial-gray-light transition-colors">
+                            <Download size={16} className="mr-2"/>
+                            {isGeneratingReport ? 'Membuat...' : 'Dokumen RAB'}
+                        </button>
+                    </div>
                 </div>
             )}
-    </div>
-  );
+        </div>
+    );
 });
 
 export default CurrentProjectDetailsHeader;
