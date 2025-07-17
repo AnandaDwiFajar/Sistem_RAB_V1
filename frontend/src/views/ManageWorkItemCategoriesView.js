@@ -41,11 +41,11 @@ const ManageWorkItemCategoriesView = () => {
 
     const CategoriesTable = () => (
         <div className="overflow-x-auto bg-white border border-industrial-gray-light rounded-lg shadow-sm">
-            <table className="w-full min-w-max text-left">
+            <table className="w-full text-left">
                 <thead className="bg-gray-50 border-b border-industrial-gray-light">
                     <tr>
-                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Nama Kategori</th>
-                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-center">Aksi</th>
+                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider w-full">Nama Kategori</th>
+                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody className="text-industrial-dark">
@@ -56,8 +56,8 @@ const ManageWorkItemCategoriesView = () => {
                                     <td className="p-4">
                                         <input type="text" value={editingName} onChange={(e) => setEditingName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()} className="w-full p-1 bg-white border border-industrial-accent rounded-md text-industrial-dark focus:outline-none focus:ring-2 focus:ring-industrial-accent" autoFocus />
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center">
+                                    <td className="p-4 text-right">
+                                        <div className="flex items-center justify-end space-x-2">
                                             <button onClick={handleSaveEdit} className="p-1.5 text-green-600 hover:text-green-700" title="Simpan"><Save size={18} /></button>
                                             <button onClick={handleCancelEdit} className="p-1.5 text-gray-500 hover:text-gray-700" title="Batal"><X size={18} /></button>
                                         </div>
@@ -66,8 +66,8 @@ const ManageWorkItemCategoriesView = () => {
                             ) : (
                                 <>
                                     <td className="p-4 font-medium">{category.category_name}</td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex items-center justify-center">
+                                    <td className="p-4 text-right">
+                                        <div className="flex items-center justify-end space-x-2">
                                             <button onClick={() => handleStartEdit(category)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Edit3 size={16} /></button>
                                             <button onClick={() => handleDelete(category)} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus"><Trash2 size={16} /></button>
                                         </div>
