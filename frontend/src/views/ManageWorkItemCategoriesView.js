@@ -1,60 +1,57 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Settings, PlusCircle, Loader2, AlertTriangle, Edit3, Trash2, Save, X } from 'lucide-react';
-import { getUnits } from '../services/apiService';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useCallback } from 'react';
+import { ClipboardList, PlusCircle, Loader2, AlertTriangle, Edit3, Trash2, Save, X } from 'lucide-react';
 import { useUserData } from '../hooks/useUserData';
-import ManageUnitsModal from '../components/modals/ManageUnitsModal';
+import ManageWorkItemCategoriesModal from '../components/modals/ManageWorkItemCategoriesModal';
 
-const ManageUnitsView = () => {
-    const { userId } = useAuth();
+const ManageWorkItemCategoriesView = () => {
     const { 
-        userUnits, 
-        handleAddNewUnit, 
-        handleDeleteUnit, 
-        handleUpdateUnit, 
-        newUnitName, 
-        setNewUnitName 
+        userWorkItemCategories,
+        handleAddNewWorkItemCategory,
+        handleDeleteWorkItemCategory,
+        handleUpdateWorkItemCategory,
+        newCategoryName,
+        setNewCategoryName,
     } = useUserData();
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [showManageUnitsModal, setShowManageUnitsModal] = useState(false);
-    const [editingUnit, setEditingUnit] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [editingCategory, setEditingCategory] = useState(null);
     const [editingName, setEditingName] = useState('');
 
-    const handleStartEdit = (unit) => {
-        setEditingUnit(unit);
-        setEditingName(unit.unit_name);
+    const handleStartEdit = (category) => {
+        setEditingCategory(category);
+        setEditingName(category.category_name);
     };
 
     const handleCancelEdit = () => {
-        setEditingUnit(null);
+        setEditingCategory(null);
         setEditingName('');
     };
 
     const handleSaveEdit = async () => {
-        if (!editingUnit || !editingName.trim()) return;
-        await handleUpdateUnit(editingUnit.id, editingName.trim());
+        if (!editingCategory || !editingName.trim()) return;
+        await handleUpdateWorkItemCategory(editingCategory.id, editingName.trim());
         handleCancelEdit();
     };
-    
-    const handleDelete = async (unit) => {
-        await handleDeleteUnit(unit)
-    }
 
-    const UnitsTable = () => (
+    const handleDelete = async (category) => {
+        await handleDeleteWorkItemCategory(category);
+    };
+
+    const CategoriesTable = () => (
         <div className="overflow-x-auto bg-white border border-industrial-gray-light rounded-lg shadow-sm">
             <table className="w-full min-w-max text-left">
                 <thead className="bg-gray-50 border-b border-industrial-gray-light">
                     <tr>
-                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Nama Unit</th>
+                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Nama Kategori</th>
                         <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody className="text-industrial-dark">
-                    {userUnits.map(unit => (
-                        <tr key={unit.id} className="border-b border-industrial-gray-light hover:bg-gray-50/50 transition-colors">
-                            {editingUnit && editingUnit.id === unit.id ? (
+                    {userWorkItemCategories.map(category => (
+                        <tr key={category.id} className="border-b border-industrial-gray-light hover:bg-gray-50/50 transition-colors">
+                            {editingCategory && editingCategory.id === category.id ? (
                                 <>
                                     <td className="p-4">
                                         <input type="text" value={editingName} onChange={(e) => setEditingName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()} className="w-full p-1 bg-white border border-industrial-accent rounded-md text-industrial-dark focus:outline-none focus:ring-2 focus:ring-industrial-accent" autoFocus />
@@ -68,11 +65,11 @@ const ManageUnitsView = () => {
                                 </>
                             ) : (
                                 <>
-                                    <td className="p-4 font-medium">{unit.unit_name}</td>
+                                    <td className="p-4 font-medium">{category.category_name}</td>
                                     <td className="p-4 text-center">
                                         <div className="flex items-center justify-center">
-                                            <button onClick={() => handleStartEdit(unit)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Edit3 size={16} /></button>
-                                            <button onClick={() => handleDelete(unit)} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus"><Trash2 size={16} /></button>
+                                            <button onClick={() => handleStartEdit(category)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Edit3 size={16} /></button>
+                                            <button onClick={() => handleDelete(category)} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus"><Trash2 size={16} /></button>
                                         </div>
                                     </td>
                                 </>
@@ -86,15 +83,15 @@ const ManageUnitsView = () => {
 
     const NoDataDisplay = () => (
         <div className="text-center py-16 px-6 border-2 border-dashed border-industrial-gray-light rounded-lg">
-            <Settings size={48} className="mx-auto text-industrial-gray" />
-            <h3 className="mt-4 text-xl font-semibold text-industrial-dark">Belum Ada Data Unit</h3>
-            <p className="mt-2 text-industrial-gray-dark">Tambahkan unit baru untuk digunakan dalam data harga.</p>
+            <ClipboardList size={48} className="mx-auto text-industrial-gray" />
+            <h3 className="mt-4 text-xl font-semibold text-industrial-dark">Belum Ada Kategori</h3>
+            <p className="mt-2 text-industrial-gray-dark">Tambahkan kategori baru untuk komponen pekerjaan.</p>
             <div className="mt-6">
                  <button
-                    onClick={() => setShowManageUnitsModal(true)}
+                    onClick={() => setShowModal(true)}
                     className="flex items-center mx-auto px-4 py-2 bg-industrial-accent text-white font-semibold rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
                 >
-                    <PlusCircle size={18} className="mr-2"/> Tambah Unit Baru
+                    <PlusCircle size={18} className="mr-2"/> Tambah Kategori Baru
                 </button>
             </div>
         </div>
@@ -102,41 +99,41 @@ const ManageUnitsView = () => {
     
     return (
         <div className="p-8">
-            <h1 className="text-3xl font-bold text-industrial-dark mb-6">Kelola Unit</h1>
+            <h1 className="text-3xl font-bold text-industrial-dark mb-6">Kelola Kategori Komponen Pekerjaan</h1>
             <div className="flex justify-end items-center space-x-3 mb-6">
                 <button
-                    onClick={() => setShowManageUnitsModal(true)}
+                    onClick={() => setShowModal(true)}
                     className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
                 >
-                    <PlusCircle size={18} className="mr-2"/> Tambah Unit
+                    <PlusCircle size={18} className="mr-2"/> Tambah Kategori
                 </button>
             </div>
 
             {isLoading ? (
                 <div className="flex items-center justify-center p-8 text-industrial-gray">
                     <Loader2 className="animate-spin mr-2" />
-                    <span>Memuat data unit...</span>
+                    <span>Memuat data...</span>
                 </div>
             ) : error ? (
                  <div className="flex items-center justify-center p-8 text-red-600 bg-red-100 rounded-lg">
                     <AlertTriangle className="mr-2" />
                     <span>{error}</span>
                 </div>
-            ) : userUnits.length === 0 ? (
+            ) : userWorkItemCategories.length === 0 ? (
                 <NoDataDisplay />
             ) : (
-                <UnitsTable />
+                <CategoriesTable />
             )}
 
-            <ManageUnitsModal
-                showManageUnitsModal={showManageUnitsModal}
-                setShowManageUnitsModal={setShowManageUnitsModal}
-                newUnitName={newUnitName}
-                setNewUnitName={setNewUnitName}
-                handleAddNewUnit={handleAddNewUnit}
+            <ManageWorkItemCategoriesModal
+                showManageCategoriesModal={showModal}
+                setShowManageCategoriesModal={setShowModal}
+                newCategoryName={newCategoryName}
+                setNewCategoryName={setNewCategoryName}
+                handleAddNewWorkItemCategory={handleAddNewWorkItemCategory}
             />
         </div>
     );
 };
 
-export default ManageUnitsView;
+export default ManageWorkItemCategoriesView;

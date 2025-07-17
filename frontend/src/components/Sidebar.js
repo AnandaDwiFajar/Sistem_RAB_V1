@@ -8,12 +8,14 @@ const Sidebar = ({ userRole, currentView, setCurrentView, handleLogout }) => {
             { id: 'materialPrices', label: 'Daftar Harga Satuan', icon: DollarSign },
             { id: 'workItemDefinitions', label: 'Komponen Pekerjaan', icon: ClipboardList },
             { id: 'manageUnits', label: 'Kelola Unit', icon: Settings },
+            { id: 'manageWorkItemCategories', label: 'Kelola Kategori', icon: Settings },
             { id: 'archivedProjects', label: 'Arsip', icon: Archive },
         ],
         staff_operasional: [
             { id: 'materialPrices', label: 'Daftar Harga Satuan', icon: DollarSign },
             { id: 'workItemDefinitions', label: 'Komponen Pekerjaan', icon: ClipboardList },
             { id: 'manageUnits', label: 'Kelola Unit', icon: Settings },
+            { id: 'manageWorkItemCategories', label: 'Kelola Kategori', icon: Settings },
         ],
     };
 

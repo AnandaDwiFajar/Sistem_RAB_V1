@@ -112,7 +112,6 @@ exports.deleteUnit = async (req, res) => {
 
     try {
         const [prices] = await pool.query('SELECT COUNT(*) as count FROM material_prices WHERE unit_id = ?', [unitId]);
-        const [definitions] = await pool.query('SELECT COUNT(*) as count FROM work_item_components WHERE primary_input_unit_id = ?', [unitId]);
 
         if (prices[0].count > 0 || definitions[0].count > 0) {
             return res.status(400).json({ message: 'Unit is in use and cannot be deleted.' });

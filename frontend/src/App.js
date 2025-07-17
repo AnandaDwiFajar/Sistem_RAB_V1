@@ -16,7 +16,8 @@ import MaterialPricesView from './views/MaterialPricesView';
 import ProjectsView from './views/ProjectsView';
 import WorkItemDefinitionsView from './views/WorkItemDefinitionsView';
 import ArchivedProjectsListView from './views/ArchivedProjectsListView';
-import ManageUnitsView from './views/ManageUnitsView'; // Import the new view
+import ManageUnitsView from './views/ManageUnitsView';
+import ManageWorkItemCategoriesView from './views/ManageWorkItemCategoriesView';
 import ManageWorkItemCategoriesModal from './components/modals/ManageWorkItemCategoriesModal';
 import ManageUnitsModal from './components/modals/ManageUnitsModal';
 import ManageCashFlowCategoriesModal from './components/modals/ManageCashFlowCategoriesModal';
@@ -78,6 +79,7 @@ function App() {
             workItemDefinitions: fetchWorkItemDefinitions,
             archivedProjects: fetchArchivedProjects,
             manageUnits: () => {}, // No initial data fetch needed for manageUnits view
+            manageWorkItemCategories: () => {}, // No initial data fetch needed
         };
         fetchMap[currentView]?.();
     }, [currentView, userId, fetchActiveProjects, fetchArchivedProjects, fetchMaterialPrices, fetchWorkItemDefinitions]);
@@ -103,7 +105,8 @@ function App() {
         workItemDefinitions: "Definisi Komponen Pekerjaan",
         archivedProjects: "Arsip Proyek",
         cashFlowSummary: "Ringkasan Cash Flow",
-        manageUnits: "Kelola Unit"
+        manageUnits: "Kelola Unit",
+        manageWorkItemCategories: "Kelola Kategori Komponen Pekerjaan",
     };
 
     return (
@@ -116,38 +119,6 @@ function App() {
             />
             
             <div className="flex-grow ml-64">
-                {/* --- Modals --- */}
-            <ManageWorkItemCategoriesModal
-                showManageCategoriesModal={showManageCategoriesModal}
-                setShowManageCategoriesModal={setShowManageCategoriesModal}
-                newCategoryName={userData.newCategoryName}
-                setNewCategoryName={userData.setNewCategoryName}
-                handleAddNewWorkItemCategory={userData.handleAddNewWorkItemCategory}
-                userWorkItemCategories={userData.userWorkItemCategories}
-                handleUpdateWorkItemCategory={userData.handleUpdateWorkItemCategory}
-                handleDeleteWorkItemCategory={(cat) => userData.handleDeleteWorkItemCategory(cat, definitionsManager.userWorkItemTemplates)}
-            />
-            <ManageUnitsModal
-                showManageUnitsModal={showManageUnitsModal}
-                setShowManageUnitsModal={setShowManageUnitsModal}
-                newUnitName={userData.newUnitName}
-                setNewUnitName={userData.setNewUnitName}
-                handleAddNewUnit={userData.handleAddNewUnit}
-                userUnits={userData.userUnits}
-                handleDeleteUnit={(unit) => userData.handleDeleteUnit(unit, materialPricesManager.materialPrices, definitionsManager.userWorkItemTemplates)}
-                handleUpdateUnit={userData.handleUpdateUnit}
-            />
-            <ManageCashFlowCategoriesModal
-                showManageCashFlowCategoriesModal={showManageCashFlowCategoriesModal}
-                setShowManageCashFlowCategoriesModal={setShowManageCashFlowCategoriesModal}
-                newCashFlowCategoryName={userData.newCashFlowCategoryName}
-                setNewCashFlowCategoryName={userData.setNewCashFlowCategoryName}
-                handleAddNewCashFlowCategory={userData.handleAddNewCashFlowCategory}
-                userCashFlowCategories={userData.userCashFlowCategories}
-                handleUpdateCashFlowCategory={userData.handleUpdateCashFlowCategory}
-                handleDeleteCashFlowCategory={(categoryToDelete) => userData.handleDeleteCashFlowCategory(categoryToDelete, projectsManager.projects, projectsManager.currentProject)}
-            />
-
                 <main className="p-8">
                     {/* Page Header */}
                     <div className="mb-6 pb-4 border-b border-industrial-gray-light">
@@ -185,7 +156,6 @@ function App() {
                                 materialPrices={materialPricesManager.materialPrices}
                                 userUnits={userData.userUnits}
                                 userWorkItemCategories={userData.userWorkItemCategories}
-                                setShowManageCategoriesModal={setShowManageCategoriesModal}
                             />
                         )}
                         {currentView === 'archivedProjects' && userRole === 'admin' && (
@@ -197,6 +167,9 @@ function App() {
                         )}
                         {currentView === 'manageUnits' && (
                            <ManageUnitsView />
+                        )}
+                        {currentView === 'manageWorkItemCategories' && (
+                            <ManageWorkItemCategoriesView />
                         )}
                     </div>
                 </main>

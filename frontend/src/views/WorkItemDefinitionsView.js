@@ -1,13 +1,10 @@
 import React, { useMemo } from 'react';
-import { ClipboardList, FilePlus, Settings, Info, Edit3, Trash2, PlusCircle, Save, XCircle, Sparkles, Loader2, Calculator, HelpCircle } from 'lucide-react';
+import { ClipboardList, FilePlus, Info, Edit3, Trash2, PlusCircle, Save, XCircle, Sparkles, Loader2, Calculator, HelpCircle } from 'lucide-react';
 import { CALCULATION_SCHEMAS, getCalculationSchemaTypes } from '../utils/calculationSchemas';
 
 // --- Sub-komponen Tampilan Utama (Tidak berubah dari langkah sebelumnya) ---
-const ActionButtons = ({ onNew, onManageCategories }) => (
+const ActionButtons = ({ onNew }) => (
     <div className="flex justify-end items-center space-x-3 mb-6">
-        <button onClick={onManageCategories} className="flex items-center px-4 py-2 text-sm font-medium text-industrial-dark border border-industrial-gray-light rounded-md hover:bg-gray-100 transition-colors">
-            <Settings size={18} className="mr-2"/> Kelola Kategori
-        </button>
         <button onClick={() => onNew(null)} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors">
             <FilePlus size={18} className="mr-2"/> Tambah Pekerjaan Baru
         </button>
@@ -73,7 +70,7 @@ const WorkItemDefinitionsView = ({
     handleOpenTemplateForm, handleTemplateFormChange, handleTemplateComponentChange,
     handleAddTemplateComponent, handleRemoveTemplateComponent, handleSaveWorkItemTemplate,
     isSavingDefinition, handleDeleteWorkItemDefinition, handleSuggestComponents,
-    isSuggestingComponents, isLoading, setShowManageCategoriesModal,
+    isSuggestingComponents, isLoading,
 }) => {
     const { templatesArray, templatesByCategory, sortedMaterialPrices, groupedSchemas } = useMemo(() => {
         const templatesArr = Object.values(userWorkItemTemplates || {});
@@ -167,7 +164,7 @@ const WorkItemDefinitionsView = ({
     // --- Tampilan Utama (Daftar) ---
     return (
         <div className="space-y-8">
-            <ActionButtons onNew={handleOpenTemplateForm} onManageCategories={() => setShowManageCategoriesModal(true)} />
+            <ActionButtons onNew={handleOpenTemplateForm} />
             {isLoading && templatesArray.length === 0 && <p className="text-center text-industrial-gray">Memuat definisi...</p>}
             {!isLoading && templatesArray.length === 0 ? <NoDataDisplay onNew={handleOpenTemplateForm} /> : (
                 Object.entries(templatesByCategory).sort(([catA], [catB]) => catA.localeCompare(catB)).map(([categoryName, templates]) => (
