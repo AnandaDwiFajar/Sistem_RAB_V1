@@ -6,9 +6,7 @@ export const calculateWorkItem = (template, primaryInputValue, allMaterialPrices
     const schema = CALCULATION_SCHEMAS[template.calculation_schema_type || 'SIMPLE_PRIMARY_INPUT'];
     if (!schema) throw new Error("Calculation schema not found.");
 
-    const calculationResult = (typeof schema.calculate === 'function' && !schema.isSimple)
-        ? schema.calculate(parameterValues)
-        : null;
+    const calculationResult = (typeof schema.calculate === 'function' && !schema.isSimple) ? schema.calculate(parameterValues) : null;
 
     let primaryQuantity;
     if (schema.isSimple) {

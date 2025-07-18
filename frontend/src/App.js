@@ -85,7 +85,6 @@ function App() {
             );
 
             setSimulatedWorkItem(calculatedData);
-
         } catch (error) {
             console.error("Calculation failed:", error);
             showToast('error', `Gagal melakukan perhitungan: ${error.message}`);
