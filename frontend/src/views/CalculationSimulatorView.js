@@ -23,7 +23,7 @@ const CalculationSimulatorView = ({
     definitionsManager = {},
     userWorkItemCategories = [],
     // Props simulasi
-    workItemFormData,
+    workItemFormData = { templateKey: '', parameterValues: {}, primaryInputValue: '' },
     handleWorkItemFormChange,
     calculatedWorkItemPreview,
     handleCalculate,
@@ -93,7 +93,7 @@ const CalculationSimulatorView = ({
             {calculatedWorkItemPreview && (
                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-industrial-gray-light animate-fadeIn">
                     <h4 className="text-lg font-semibold text-industrial-dark mb-2">Hasil Estimasi</h4>
-                    <p className="text-xl font-bold text-green-600">{formatCurrency(calculatedWorkItemPreview.totalItemCost)}</p>
+                    <p className="text-xl font-bold text-green-600">{formatCurrency(calculatedWorkItemPreview.total_item_cost)}</p>
                     
                     <div className="mt-4 pt-3 border-t border-industrial-gray-light text-sm text-industrial-gray-dark">
                         <p className="font-semibold mb-2">Rincian Komponen:</p>
