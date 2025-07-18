@@ -31,7 +31,7 @@ const ProjectDetailsView = () => {
         }
         // Cleanup function
         return () => {
-            if(projectId) {
+            if (projectId) {
                 projectsManager.setCurrentProject(null); 
             }
         };
