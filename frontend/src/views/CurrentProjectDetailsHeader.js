@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { Download, BrainCircuit, List, LineChart, User, MapPin, Calendar, Award, DollarSign, Target, Percent } from 'lucide-react';
+import { Briefcase, Download, BrainCircuit, List, LineChart, User, MapPin, Calendar, Award, DollarSign, Target, Percent } from 'lucide-react';
 
 const StatCard = ({ icon, label, value, colorClass = 'text-industrial-accent' }) => {
     const IconComponent = icon;
@@ -33,6 +33,14 @@ const CurrentProjectDetailsHeader = React.memo(({
     const totalBudgetPlanCost = parseFloat(currentProject.total_budget_plan_cost) || 0;
     const estimatedProfit = projectPrice - totalBudgetPlanCost;
     const profitMargin = projectPrice > 0 ? (estimatedProfit / projectPrice) * 100 : 0;
+    
+    const navButtonStyle = (view) =>
+    `px-4 py-2 text-sm font-semibold rounded-md flex items-center transition-colors ${
+      currentProjectView === view
+        ? 'bg-industrial-accent text-white shadow-md'
+        : 'bg-white text-industrial-dark hover:bg-gray-100 border border-industrial-gray-light'
+    }`;
+
 
     return (
         <div className="space-y-6">
@@ -71,43 +79,17 @@ const CurrentProjectDetailsHeader = React.memo(({
                 <StatCard icon={Percent} label="Margin Keuntungan" value={`${profitMargin.toFixed(1)}%`} colorClass={profitMargin >= 0 ? "text-blue-600" : "text-red-600"} />
             </div>
 
-            {userRole === 'admin' && (
-                <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-industrial-gray-light">
-                    {/* Tabs */}
-                    <div className="flex space-x-2 mb-4 sm:mb-0">
-                        <button
-                            onClick={() => setCurrentProjectView('workItems')}
-                            className={`px-4 py-2 text-sm font-semibold rounded-md flex items-center transition-colors ${
-                                currentProjectView === 'workItems' ? 'bg-industrial-accent text-white shadow-sm' : 'text-industrial-dark hover:bg-gray-100'
-                            }`}
-                        >
-                            <List size={16} className="mr-2" />
-                            Uraian Pekerjaan
-                        </button>
-                        <button
-                            onClick={() => setCurrentProjectView('cashFlow')}
-                            className={`px-4 py-2 text-sm font-semibold rounded-md flex items-center transition-colors ${
-                                currentProjectView === 'cashFlow' ? 'bg-industrial-accent text-white shadow-sm' : 'text-industrial-dark hover:bg-gray-100'
-                            }`}
-                        >
-                            <LineChart size={16} className="mr-2" />
-                            Biaya Lain-Lain
-                        </button>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center space-x-3">
-                        <button onClick={handleFetchProjectInsights} disabled={isFetchingProjectInsights} className="flex items-center px-4 py-2 text-sm font-medium text-industrial-accent border border-industrial-accent rounded-md hover:bg-industrial-accent hover:text-white disabled:bg-industrial-gray-light disabled:text-industrial-gray disabled:border-industrial-gray-light transition-colors">
-                            <BrainCircuit size={16} className="mr-2"/>
-                            {isFetchingProjectInsights ? 'Menganalisis...' : 'AI Insights'}
-                        </button>
-                        <button onClick={handleGenerateProjectReport} disabled={isGeneratingReport} className="flex items-center px-4 py-2 text-sm font-medium text-industrial-accent border border-industrial-accent rounded-md hover:bg-industrial-accent hover:text-white disabled:bg-industrial-gray-light disabled:text-industrial-gray disabled:border-industrial-gray-light transition-colors">
-                            <Download size={16} className="mr-2"/>
-                            {isGeneratingReport ? 'Membuat...' : 'Dokumen RAB'}
-                        </button>
-                    </div>
+            {/* Navigation Tabs */}
+            <div className="border-t border-industrial-gray-light pt-4">
+                <div className="flex space-x-2">
+                    <button onClick={() => setCurrentProjectView('workItems')} className={navButtonStyle('workItems')}>
+                        <Briefcase size={16} className="mr-2"/> Daftar Pekerjaan
+                    </button>
+                    <button onClick={() => setCurrentProjectView('cashFlow')} className={navButtonStyle('cashFlow')}>
+                        <DollarSign size={16} className="mr-2"/> Biaya Lain-Lain
+                    </button>
                 </div>
-            )}
+            </div>
         </div>
     );
 });

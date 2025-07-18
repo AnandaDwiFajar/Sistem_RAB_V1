@@ -1,200 +1,150 @@
-/* eslint-disable require-jsdoc, camelcase, no-unused-vars, react/prop-types */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider, useUI } from './contexts/UIContext';
-
-// Import New Sidebar
-import Sidebar from './components/Sidebar';
-
-// Import Custom Hooks & Components like before
 import { useUserData } from './hooks/useUserData';
+import { useProjects } from './hooks/useProjects';
 import { useMaterialPrices } from './hooks/useMaterialPrices';
 import { useWorkItemDefinitions } from './hooks/useWorkItemDefinitions';
-import { useProjects } from './hooks/useProjects';
+
+import Sidebar from './components/Sidebar';
 import LoginPage from './views/LoginPage';
-import MaterialPricesView from './views/MaterialPricesView';
 import ProjectsView from './views/ProjectsView';
+import MaterialPricesView from './views/MaterialPricesView';
 import WorkItemDefinitionsView from './views/WorkItemDefinitionsView';
 import ArchivedProjectsListView from './views/ArchivedProjectsListView';
 import ManageUnitsView from './views/ManageUnitsView';
 import ManageWorkItemCategoriesView from './views/ManageWorkItemCategoriesView';
-import ManageWorkItemCategoriesModal from './components/modals/ManageWorkItemCategoriesModal';
-import ManageUnitsModal from './components/modals/ManageUnitsModal';
-import ManageCashFlowCategoriesModal from './components/modals/ManageCashFlowCategoriesModal';
+import ProjectDetailsView from './views/ProjectDetailsView';
 import ProjectReport from './views/ProjectReport';
 import ProjectFormModal from './components/modals/ProjectFormModal';
 import PriceFormModal from './components/modals/PriceFormModal';
 
+// Komponen Layout untuk Halaman yang Membutuhkan Sidebar
+const AppLayout = ({ projectsManager, materialPricesManager, definitionsManager, userData, handleLogout, userRole }) => (
+    <div className="flex h-screen bg-industrial-background">
+        <Sidebar handleLogout={handleLogout} userRole={userRole} />
+        <main className="flex-1 p-6 overflow-auto">
+            {/* Outlet akan merender komponen anak sesuai URL */}
+            <Outlet context={{ projectsManager, materialPricesManager, definitionsManager, userData }} />
+        </main>
+    </div>
+);
+
 function App() {
     const { userId, userRole, isAuthLoading, logout } = useAuth();
+    const navigate = useNavigate();
     const { showToast } = useUI();
 
-    const [currentView, setCurrentView] = useState('projects');
-    const hasSetInitialView = useRef(false);
-
-    useEffect(() => {
-      const clearSession = async () => {
-          if (logout) {
-              await logout();
-          }
-      };
-      clearSession();
-  }, []);
-
-    // --- Hooks Instantiation (same as before) ---
+    // Inisialisasi semua hook tetap di sini agar state terpusat
     const userData = useUserData();
     const materialPricesManager = useMaterialPrices(userData.userUnits, userData.setUserUnits);
     const definitionsManager = useWorkItemDefinitions(materialPricesManager.materialPrices, userData.userWorkItemCategories, userData.userUnits);
     const projectsManager = useProjects(definitionsManager.userWorkItemTemplates, materialPricesManager.materialPrices, userData.userUnits, userData.userWorkItemCategories);
 
-    
-    // --- Modal State (same as before) ---
-    const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
-    const [showManageUnitsModal, setShowManageUnitsModal] = useState(false);
-    const [showManageCashFlowCategoriesModal, setShowManageCashFlowCategoriesModal] = useState(false);
-    
-    // --- Initial View Logic (same as before) ---
-    useEffect(() => {
-        if (userId && userRole && !hasSetInitialView.current) {
-            if (userRole === 'staff_operasional') {
-                setCurrentView('materialPrices');
-            } else {
-                setCurrentView('projects');
-            }
-            hasSetInitialView.current = true;
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+            showToast('success', 'Anda telah berhasil logout.');
+        } catch (error) {
+            showToast('error', 'Gagal logout. Silakan coba lagi.');
         }
-    }, [userId, userRole]);
-
-    // --- Data Fetching (same as before) ---
-    const { fetchMaterialPrices } = materialPricesManager;
-    const { fetchWorkItemDefinitions } = definitionsManager;
-    const { fetchActiveProjects, fetchArchivedProjects } = projectsManager;
-
-    useEffect(() => {
-        if (!userId) return;
-        const fetchMap = {
-            projects: fetchActiveProjects,
-            cashFlowSummary: fetchActiveProjects,
-            materialPrices: fetchMaterialPrices,
-            workItemDefinitions: fetchWorkItemDefinitions,
-            archivedProjects: fetchArchivedProjects,
-            manageUnits: () => {}, // No initial data fetch needed for manageUnits view
-            manageWorkItemCategories: () => {}, // No initial data fetch needed
-        };
-        fetchMap[currentView]?.();
-    }, [currentView, userId, fetchActiveProjects, fetchArchivedProjects, fetchMaterialPrices, fetchWorkItemDefinitions]);
-
-    const handleLogout = useCallback(async () => {
-        await logout();
-        setCurrentView('projects');
-        hasSetInitialView.current = false;
-        showToast('info', "Anda telah berhasil logout.");
-    }, [logout, showToast]);
-
-    if (isAuthLoading) {
-        return <div className="flex items-center justify-center min-h-screen text-lg font-medium text-industrial-dark industrial-background">Memuat Sesi Pengguna...</div>;
-    }
-
-    if (!userId) {
-        return <LoginPage />;
-    }
-
-    const viewTitles = {
-        projects: "Manajemen Proyek",
-        materialPrices: "Daftar Harga Satuan Bahan",
-        workItemDefinitions: "Definisi Komponen Pekerjaan",
-        archivedProjects: "Arsip Proyek",
-        cashFlowSummary: "Ringkasan Cash Flow",
-        manageUnits: "Kelola Unit",
-        manageWorkItemCategories: "Kelola Kategori Komponen Pekerjaan",
     };
 
-    return (
-        <div className="flex min-h-screen bg-industrial-light">
-            <Sidebar 
-                userRole={userRole} 
-                currentView={currentView} 
-                setCurrentView={setCurrentView} 
-                handleLogout={handleLogout} 
-            />
-            
-            <div className="flex-grow ml-64">
-                <main className="p-8">
-                    {/* Page Header */}
-                    <div className="mb-6 pb-4 border-b border-industrial-gray-light">
-                        <h2 className="text-3xl font-bold text-industrial-dark">{viewTitles[currentView]}</h2>
-                        <p className="text-industrial-gray">Selamat datang, kelola data Anda di sini.</p>
-                    </div>
+    useEffect(() => {
+        if (userId) {
+            projectsManager.fetchActiveProjects();
+        } else {
+            projectsManager.clearProjects();
+        }
+    }, [userId, projectsManager.fetchActiveProjects, projectsManager.clearProjects]);
 
-                    {/* --- Main Content Area --- */}
-                    <div className="bg-industrial-white p-6 rounded-lg shadow-md">
-                        {currentView === 'materialPrices' && (
+
+    if (isAuthLoading) {
+        return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    }
+
+    return (
+        <>
+            <Routes>
+                {/* Rute untuk pengguna yang sudah login */}
+                <Route 
+                    path="/*" 
+                    element={
+                        userId ? 
+                        <AppLayout 
+                            handleLogout={handleLogout}
+                            userRole={userRole}
+                            projectsManager={projectsManager}
+                            materialPricesManager={materialPricesManager}
+                            definitionsManager={definitionsManager}
+                            userData={userData}
+                        /> : 
+                        <Navigate to="/login" />
+                    }
+                >
+                    {/* Halaman default setelah login */}
+                    <Route index element={<ProjectsView projectsManager={projectsManager} />} />
+                    <Route
+                        path="materials"
+                        element={
                             <MaterialPricesView
-                                pricesManager={materialPricesManager}
-                                onEdit={materialPricesManager.handleEditPrice} 
+                                materialPricesManager={materialPricesManager}
                                 onAddNew={() => {
-                                    materialPricesManager.setEditingPrice(null); 
-                                    materialPricesManager.setPriceFormData({ name: '', unitId: userData.userUnits[0]?.id || '', customUnitName: '', price: '' });
+                                    materialPricesManager.setEditingPrice(null);
+                                    const firstUnitId = materialPricesManager.userUnits.length > 0 ? materialPricesManager.userUnits[0].id : '';
+                                    materialPricesManager.setPriceFormData({ name: '', unitId: firstUnitId, customUnitName: '', price: '' });
                                     materialPricesManager.setShowPriceForm(true);
                                 }}
+                                onEdit={materialPricesManager.handleEditPrice}
                             />
-                        )}
-                        {currentView === 'projects' && (
-                            <ProjectsView
-                                projectsManager={projectsManager}
-                                definitionsManager={definitionsManager}
-                                userRole={userRole}
-                                setCurrentView={setCurrentView}
-                                userWorkItemCategories={userData.userWorkItemCategories}                                           
-                                cashFlowCategories={userData.userCashFlowCategories}
-                                setShowManageCashFlowCategoriesModal={setShowManageCashFlowCategoriesModal}
-                            />
-                        )}
-                        {currentView === 'workItemDefinitions' && (
-                            <WorkItemDefinitionsView
-                                {...definitionsManager}
-                                materialPrices={materialPricesManager.materialPrices}
-                                userUnits={userData.userUnits}
-                                userWorkItemCategories={userData.userWorkItemCategories}
-                            />
-                        )}
-                        {currentView === 'archivedProjects' && userRole === 'admin' && (
-                            <ArchivedProjectsListView
-                                archivedProjects={projectsManager.archivedProjects}
-                                isLoading={projectsManager.isLoading}
-                                handleUnarchiveProject={projectsManager.handleUnarchiveProject}
-                            />
-                        )}
-                        {currentView === 'manageUnits' && (
-                           <ManageUnitsView />
-                        )}
-                        {currentView === 'manageWorkItemCategories' && (
-                            <ManageWorkItemCategoriesView />
-                        )}
-                    </div>
-                </main>
+                        }
+                    />
+                    <Route path="definitions" element={
+                        <WorkItemDefinitionsView 
+                            {...definitionsManager}
+                            userWorkItemCategories={userData.userWorkItemCategories}
+                            materialPrices={materialPricesManager.materialPrices}
+                        />} 
+                    />
+                    <Route path="archived" element={<ArchivedProjectsListView projectsManager={projectsManager} />} />
+                    <Route path="settings/units" element={<ManageUnitsView units={userData.userUnits} setUnits={userData.setUserUnits} />} />
+                    <Route path="settings/work-item-categories" element={<ManageWorkItemCategoriesView categories={userData.userWorkItemCategories} setCategories={userData.setUserWorkItemCategories} />} />
+                    
+                    {/* Rute dengan parameter */}
+                    <Route path="project/:projectId" element={<ProjectDetailsView />} />
+                    <Route path="report/:projectId" element={<ProjectReport />} />
 
-                <footer className="px-8 py-4 text-center text-sm text-industrial-gray">
-                    <p>&copy; {new Date().getFullYear()} Sistem Informasi Rencana Anggaran Biaya</p>
-                </footer>
-            </div>
-            
-            {/* Hidden component & Modals (same as before) */}
-            <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '800px' }}><ProjectReport ref={projectsManager.reportContentRef} project={projectsManager.currentProject} allCategories={userData.userWorkItemCategories} cashFlowCategories={userData.userCashFlowCategories} /></div>
+                    {/* Rute fallback jika halaman tidak ditemukan setelah login */}
+                    <Route path="*" element={<Navigate to="/" />} />
+                </Route>
+
+                {/* Rute untuk pengguna yang belum login */}
+                <Route path="/login" element={!userId ? <LoginPage /> : <Navigate to="/" />} />
+            </Routes>
+
+            {/* Modal bisa tetap di sini karena mereka dipicu oleh state, bukan URL */}
             <ProjectFormModal showModal={projectsManager.showProjectForm} handleClose={projectsManager.handleCancelEdit} formData={projectsManager.projectFormData} handleFormChange={projectsManager.handleProjectFormChange} handleSubmit={projectsManager.handleSaveOrUpdateProject} isSaving={projectsManager.isSavingProject} editingProjectId={projectsManager.editingProjectId} dateError={projectsManager.dateError} />
-            {materialPricesManager.showPriceForm && <PriceFormModal isOpen={materialPricesManager.showPriceForm} onClose={() => materialPricesManager.setShowPriceForm(false)} editingPrice={materialPricesManager.editingPrice} isSaving={materialPricesManager.isSavingPrice} pricesManager={materialPricesManager} />}
-        </div>
+            <PriceFormModal
+                isOpen={materialPricesManager.showPriceForm}
+                onClose={() => materialPricesManager.setShowPriceForm(false)}
+                editingPrice={materialPricesManager.editingPrice}
+                isSaving={materialPricesManager.isSavingPrice}
+                pricesManager={materialPricesManager}
+            />
+        </>
     );
 }
 
-function AppWrapper() {
-    return (
-        <AuthProvider>
-            <UIProvider>
+const AppWrapper = () => (
+    <Router>
+        <UIProvider>
+            <AuthProvider>
                 <App />
-            </UIProvider>
-        </AuthProvider>
-    );
-}
+            </AuthProvider>
+        </UIProvider>
+    </Router>
+);
 
 export default AppWrapper;

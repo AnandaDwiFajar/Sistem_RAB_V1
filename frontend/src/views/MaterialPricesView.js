@@ -2,8 +2,16 @@ import React from 'react';
 import { DollarSign, PlusCircle, Edit3, Trash2, Loader2 } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 
-const MaterialPricesView = ({ pricesManager, onAddNew, onEdit }) => {
-    if (!pricesManager) {
+const MaterialPricesView = ({ materialPricesManager, onAddNew, onEdit }) => {
+    // Destructure properties from materialPricesManager with default values
+    const { 
+        materialPrices = [], 
+        isLoading = true, 
+        handleDeletePrice 
+    } = materialPricesManager || {};
+
+    // Show a loading spinner if the manager is not yet available or if it's loading
+    if (isLoading && materialPrices.length === 0) {
         return (
             <div className="flex items-center justify-center p-8 text-industrial-gray">
                 <Loader2 className="animate-spin mr-2" />
@@ -11,8 +19,6 @@ const MaterialPricesView = ({ pricesManager, onAddNew, onEdit }) => {
             </div>
         );
     }
-
-    const { materialPrices, isLoading, handleDeletePrice } = pricesManager;
 
     const ActionButtons = () => (
         <div className="flex justify-end items-center space-x-3 mb-6">
@@ -76,10 +82,6 @@ const MaterialPricesView = ({ pricesManager, onAddNew, onEdit }) => {
     return (
         <div>
             <ActionButtons />
-            
-            {isLoading && materialPrices.length === 0 && (
-                <div className="text-center p-4 text-industrial-gray">Memuat harga...</div>
-            )}
             
             {!isLoading && materialPrices.length === 0 ? <NoDataDisplay /> : <PricesTable />}
         </div>

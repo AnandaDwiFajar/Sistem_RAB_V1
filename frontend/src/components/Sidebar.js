@@ -1,21 +1,25 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Briefcase, DollarSign, ClipboardList, Archive, LogOut, Settings } from 'lucide-react';
 
-const Sidebar = ({ userRole, currentView, setCurrentView, handleLogout }) => {
+const Sidebar = ({ userRole, handleLogout }) => {
+    const location = useLocation();
+
+    // Sesuaikan path di sini agar cocok dengan yang ada di App.js
     const navItems = {
         admin: [
-            { id: 'projects', label: 'Proyek', icon: Briefcase },
-            { id: 'materialPrices', label: 'Daftar Harga Satuan', icon: DollarSign },
-            { id: 'workItemDefinitions', label: 'Komponen Pekerjaan', icon: ClipboardList },
-            { id: 'manageUnits', label: 'Kelola Unit', icon: Settings },
-            { id: 'manageWorkItemCategories', label: 'Kelola Kategori', icon: Settings },
-            { id: 'archivedProjects', label: 'Arsip', icon: Archive },
+            { path: '/', label: 'Proyek', icon: Briefcase }, // DIUBAH
+            { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign }, // DIUBAH
+            { path: '/definitions', label: 'Komponen Pekerjaan', icon: ClipboardList }, // DIUBAH
+            { path: '/settings/units', label: 'Kelola Unit', icon: Settings }, // DIUBAH
+            { path: '/settings/work-item-categories', label: 'Kelola Kategori', icon: Settings }, // DIUBAH
+            { path: '/archived', label: 'Arsip', icon: Archive }, // DIUBAH
         ],
         staff_operasional: [
-            { id: 'materialPrices', label: 'Daftar Harga Satuan', icon: DollarSign },
-            { id: 'workItemDefinitions', label: 'Komponen Pekerjaan', icon: ClipboardList },
-            { id: 'manageUnits', label: 'Kelola Unit', icon: Settings },
-            { id: 'manageWorkItemCategories', label: 'Kelola Kategori', icon: Settings },
+            { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign }, // DIUBAH
+            { path: '/definitions', label: 'Komponen Pekerjaan', icon: ClipboardList }, // DIUBAH
+            { path: '/settings/units', label: 'Kelola Unit', icon: Settings }, // DIUBAH
+            { path: '/settings/work-item-categories', label: 'Kelola Kategori', icon: Settings }, // DIUBAH
         ],
     };
 
@@ -27,7 +31,9 @@ const Sidebar = ({ userRole, currentView, setCurrentView, handleLogout }) => {
     const getNavItems = () => navItems[userRole] || [];
 
     return (
-        <div className="w-64 h-screen bg-industrial-dark text-industrial-light flex flex-col fixed top-0 left-0">
+        // Anda menggunakan `fixed` di sini, yang mungkin menyebabkan masalah layout
+        // Sebaiknya, biarkan App.js yang mengatur layout flexbox
+        <aside className="w-64 h-screen bg-industrial-dark text-industrial-light flex flex-col">
             <div className="p-6 border-b border-industrial-gray-dark">
                 <h1 className="text-2xl font-bold text-industrial-accent">RAB Pro</h1>
                 <p className="text-sm text-industrial-gray">{roleDisplayNames[userRole]}</p>
@@ -35,16 +41,16 @@ const Sidebar = ({ userRole, currentView, setCurrentView, handleLogout }) => {
             <nav className="flex-grow p-4">
                 <ul>
                     {getNavItems().map(item => (
-                        <li key={item.id} className="mb-2">
-                            <button
-                                onClick={() => setCurrentView(item.id)}
+                        <li key={item.path} className="mb-2">
+                            <Link
+                                to={item.path}
                                 className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${
-                                    currentView === item.id ? 'bg-industrial-accent text-white' : 'hover:bg-industrial-gray-dark'
+                                    location.pathname === item.path ? 'bg-industrial-accent text-white' : 'hover:bg-industrial-gray-dark'
                                 }`}
                             >
                                 <item.icon size={20} className="mr-3" />
                                 {item.label}
-                            </button>
+                            </Link>
                         </li>
                     ))}
                 </ul>
@@ -53,13 +59,13 @@ const Sidebar = ({ userRole, currentView, setCurrentView, handleLogout }) => {
                 <button
                     onClick={handleLogout}
                     title="Logout"
-                    className="w-full flex items-center p-3 rounded-md text-left transition-colors text-industrial-warning hover:bg-industrial-gray-dark"
+                    className="w-full flex items-center p-3 rounded-md text-left transition-colors text-red-400 hover:bg-industrial-gray-dark"
                 >
                     <LogOut size={20} className="mr-3" />
                     Logout
                 </button>
             </div>
-        </div>
+        </aside>
     );
 };
 

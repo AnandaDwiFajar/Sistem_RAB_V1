@@ -876,6 +876,24 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
       }
     }, [currentProject, reportContentRef, showToast]);
 
+    const fetchProjectById = useCallback((projectId) => {
+      handleSelectProject(projectId);
+  }, [handleSelectProject]);
+  
+  const handleStartAddWorkItem = useCallback(() => {
+    setEditingWorkItemId(null); 
+    setWorkItemFormData(initialWorkItemFormData);
+    setCalculatedWorkItemPreview(null); 
+    setShowWorkItemForm(true); 
+}, []);
+
+const clearProjects = useCallback(() => {
+  setProjects([]);
+  setArchivedProjects([]);
+  setCurrentProjectId(null);
+  setCurrentProject(null);
+}, []);
+
     useEffect(() => {
       const templateKey = workItemFormData.templateKey;
 
@@ -964,5 +982,8 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
         handleSaveWorkItem,
         handleCancelCashFlowForm,
         handleUpdateCashFlowCategory,
+        fetchProjectById,
+        handleStartAddWorkItem,
+        clearProjects,
     };
 };
