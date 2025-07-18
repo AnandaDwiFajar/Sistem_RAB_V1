@@ -36,9 +36,7 @@ const CurrentProjectDetailsHeader = React.memo(({
     
     const navButtonStyle = (view) =>
     `px-4 py-2 text-sm font-semibold rounded-md flex items-center transition-colors ${
-      currentProjectView === view
-        ? 'bg-industrial-accent text-white shadow-md'
-        : 'bg-white text-industrial-dark hover:bg-gray-100 border border-industrial-gray-light'
+      currentProjectView === view ? 'bg-industrial-accent text-white shadow-md' : 'bg-white text-industrial-dark hover:bg-gray-100 border border-industrial-gray-light'
     }`;
 
 

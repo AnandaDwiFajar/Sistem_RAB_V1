@@ -31,6 +31,9 @@ const LoginPage = () => {
                 <h1 className="text-3xl font-bold text-industrial-accent mb-2 text-center">
                     Sistem Informasi RAB
                 </h1>
+                <h2 className="text-3xl font-bold text-industrial-accent mb-2 text-center">
+                    CV. NANDA
+                </h2>
                 <p className="text-industrial-gray text-center mb-8">Login untuk Melanjutkan</p>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>

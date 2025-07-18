@@ -860,7 +860,6 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
           // Melepaskan URL objek setelah selesai
           window.URL.revokeObjectURL(url);
           showToast('success', 'Laporan PDF berhasil diunduh.');
-
       } catch (error) {
           console.error("Error generating PDF report:", error);
           showToast('error', `Gagal mengunduh laporan: ${error.message}`);
