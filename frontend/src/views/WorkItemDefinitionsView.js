@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { ClipboardList, FilePlus, Info, Edit3, Trash2, PlusCircle, Save, XCircle, Sparkles, Loader2, Calculator, HelpCircle } from 'lucide-react';
+import { ClipboardList, FilePlus, Edit3, Trash2, PlusCircle, Save, XCircle, Sparkles, Loader2, Calculator, HelpCircle } from 'lucide-react';
 import { CALCULATION_SCHEMAS, getCalculationSchemaTypes } from '../utils/calculationSchemas';
 
-// --- Sub-komponen Tampilan Utama (Tidak berubah dari langkah sebelumnya) ---
+// --- Sub-komponen Tampilan Utama ---
 const NoDataDisplay = ({ onNew }) => (
     <div className="text-center py-16 px-6 border-2 border-dashed border-industrial-gray-light rounded-lg">
         <ClipboardList size={48} className="mx-auto text-industrial-gray" />
@@ -15,34 +15,44 @@ const NoDataDisplay = ({ onNew }) => (
         </div>
     </div>
 );
-const DefinitionCard = ({ template, onEdit, onDelete }) => {
-    const schemaInfo = template.calculation_schema_type ? CALCULATION_SCHEMAS[template.calculation_schema_type] : null;
-    return (
-        <div className="bg-white p-4 rounded-lg border border-industrial-gray-light hover:shadow-lg hover:-translate-y-0.5 transition-all">
-            <div className="flex justify-between items-start mb-2">
-                <h4 className="text-md font-bold text-industrial-dark flex-grow break-words pr-2">{template.name}</h4>
-                <div className="flex-shrink-0 space-x-1">
-                    <button onClick={() => onEdit(template.id)} title="Edit" className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent transition-colors"><Edit3 size={16}/></button>
-                    <button onClick={() => onDelete(template.id)} title="Hapus" className="p-1.5 text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16}/></button>
-                </div>
-            </div>
-            <div className="text-xs space-y-1">
-                <p className="text-industrial-gray-dark"><span className="font-semibold">Skema:</span> {schemaInfo ? schemaInfo.name : 'Input Sederhana'}</p>
-                <p className="text-industrial-gray-dark"><span className="font-semibold">Komponen:</span> {template.components?.length || 0}</p>
-            </div>
-        </div>
-    );
-};
-const CategorySection = ({ categoryName, templates, onEdit, onDelete }) => (
-    <div>
-        <h3 className="text-lg font-semibold text-industrial-dark mb-3 pb-2 border-b-2 border-industrial-gray-light">{categoryName}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {templates.sort((a, b) => a.name.localeCompare(b.name)).map(template => <DefinitionCard key={template.id} template={template} onEdit={onEdit} onDelete={onDelete} />)}
-        </div>
+
+const DefinitionsTable = ({ templates, onEdit, onDelete }) => (
+    <div className="overflow-x-auto bg-white border border-industrial-gray-light rounded-lg shadow-sm">
+        <table className="w-full min-w-max text-left">
+            <thead className="bg-gray-50 border-b border-industrial-gray-light">
+                <tr>
+                    <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Nama Pekerjaan</th>
+                    <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Kategori</th>
+                    <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Skema Kalkulasi</th>
+                    <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody className="text-industrial-dark">
+                {templates.map(template => {
+                    const schemaInfo = template.calculation_schema_type ? CALCULATION_SCHEMAS[template.calculation_schema_type] : null;
+                    return (
+                        <tr key={template.id} className="border-b border-industrial-gray-light hover:bg-gray-50/50 transition-colors">
+                            <td className="p-4 font-medium">{template.name}</td>
+                            <td className="p-4 text-industrial-gray-dark">{template.categoryName}</td>
+                            <td className="p-4 text-industrial-gray-dark">{schemaInfo ? schemaInfo.name : 'Input Sederhana'}</td>
+                            <td className="p-4 text-right">
+                                <button onClick={() => onEdit(template.id)} className="p-2 text-industrial-gray-dark hover:text-industrial-accent transition-colors" title="Edit Definisi">
+                                    <Edit3 size={16}/>
+                                </button>
+                                <button onClick={() => onDelete(template.id)} className="p-2 text-red-500 hover:text-red-700 transition-colors" title="Hapus Definisi">
+                                    <Trash2 size={16}/>
+                                </button>
+                            </td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
     </div>
 );
 
-// --- Sub-komponen Formulir (Tidak berubah dari langkah sebelumnya) ---
+
+// --- Sub-komponen Formulir (Tidak berubah) ---
 const FormField = ({ label, children }) => (<div><label className="block text-sm font-medium text-industrial-dark mb-1">{label}</label>{children}</div>);
 const FormInput = (props) => (<input {...props} className="w-full p-2 bg-white border border-industrial-gray-light rounded-md text-industrial-dark placeholder-industrial-gray focus:outline-none focus:ring-2 focus:ring-industrial-accent" />);
 const FormSelect = ({ children, ...props }) => (<select {...props} className="w-full p-2 bg-white border border-industrial-gray-light rounded-md text-industrial-dark focus:outline-none focus:ring-2 focus:ring-industrial-accent">{children}</select>);
@@ -55,6 +65,7 @@ const FormActions = ({ onCancel, onSave, isSaving }) => (
     </div>
 );
 
+
 // --- Komponen Utama ---
 const WorkItemDefinitionsView = ({
     userWorkItemTemplates, userWorkItemCategories, materialPrices,
@@ -65,16 +76,23 @@ const WorkItemDefinitionsView = ({
     isSavingDefinition, handleDeleteWorkItemDefinition, handleSuggestComponents,
     isSuggestingComponents, isLoading,
 }) => {
-    const { templatesArray, templatesByCategory, sortedMaterialPrices, groupedSchemas } = useMemo(() => {
-        const templatesArr = Object.values(userWorkItemTemplates || {});
-        const templatesByCat = templatesArr.reduce((acc, template) => {
-            const categoryObj = userWorkItemCategories.find(c => c.id === template.category_id);
-            const categoryName = categoryObj ? categoryObj.category_name : 'Tidak Terkategori';
-            if (!acc[categoryName]) acc[categoryName] = [];
-            acc[categoryName].push(template);
-            return acc;
-        }, {});
+    const { sortedTemplates, sortedMaterialPrices, groupedSchemas } = useMemo(() => {
+        const templatesArr = Object.values(userWorkItemTemplates || {}).map(t => {
+             const categoryObj = userWorkItemCategories.find(c => c.id === t.category_id);
+             return {
+                 ...t,
+                 categoryName: categoryObj ? categoryObj.category_name : 'Tidak Terkategori'
+             };
+        });
+        
+        templatesArr.sort((a, b) => {
+            if (a.categoryName < b.categoryName) return -1;
+            if (a.categoryName > b.categoryName) return 1;
+            return a.name.localeCompare(b.name);
+        });
+        
         const sortedPrices = [...(materialPrices || [])].sort((a, b) => a.name.localeCompare(b.name));
+        
         const availableSchemas = getCalculationSchemaTypes();
         const schemasByGroup = availableSchemas.reduce((acc, schema) => {
             const group = schema.group || 'Lainnya';
@@ -83,7 +101,7 @@ const WorkItemDefinitionsView = ({
             return acc;
         }, {});
 
-        return { templatesArray: templatesArr, templatesByCategory: templatesByCat, sortedMaterialPrices: sortedPrices, groupedSchemas: schemasByGroup };
+        return { sortedTemplates: templatesArr, sortedMaterialPrices: sortedPrices, groupedSchemas: schemasByGroup };
     }, [userWorkItemTemplates, userWorkItemCategories, materialPrices]);
 
 
@@ -156,7 +174,7 @@ const WorkItemDefinitionsView = ({
     
     // --- Tampilan Utama (Daftar) ---
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-industrial-dark">Definisi Item Pekerjaan</h1>
                 <button
@@ -167,12 +185,14 @@ const WorkItemDefinitionsView = ({
                 </button>
             </div>
             
-            {isLoading && templatesArray.length === 0 && <p className="text-center text-industrial-gray">Memuat definisi...</p>}
-            {!isLoading && templatesArray.length === 0 ? <NoDataDisplay onNew={handleOpenTemplateForm} /> : (
-                Object.entries(templatesByCategory).sort(([catA], [catB]) => catA.localeCompare(catB)).map(([categoryName, templates]) => (
-                    <CategorySection key={categoryName} categoryName={categoryName} templates={templates} onEdit={handleOpenTemplateForm} onDelete={handleDeleteWorkItemDefinition}/>
-                ))
-            )}
+            {isLoading && sortedTemplates.length === 0 && <p className="text-center text-industrial-gray">Memuat definisi...</p>}
+            
+            {!isLoading && sortedTemplates.length === 0  ? <NoDataDisplay onNew={handleOpenTemplateForm} />  : <DefinitionsTable 
+                    templates={sortedTemplates} 
+                    onEdit={handleOpenTemplateForm} 
+                    onDelete={handleDeleteWorkItemDefinition}
+                  />
+            }
         </div>
     );
 };

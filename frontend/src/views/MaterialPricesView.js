@@ -44,7 +44,7 @@ const MaterialPricesView = ({ materialPricesManager, onAddNew, onEdit }) => {
                         <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Nama</th>
                         <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Unit</th>
                         <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Harga (Rp)</th>
-                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-center">Aksi</th>
+                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody className="text-industrial-dark">
@@ -53,7 +53,7 @@ const MaterialPricesView = ({ materialPricesManager, onAddNew, onEdit }) => {
                             <td className="p-4 font-medium">{price.name}</td>
                             <td className="p-4 text-industrial-gray-dark">{price.unit}</td>
                             <td className="p-4 font-semibold text-right">{formatCurrency(price.price)}</td>
-                            <td className="p-4 text-center">
+                            <td className="p-4 text-right">
                                 <button onClick={() => onEdit(price)} className="p-2 text-industrial-gray-dark hover:text-industrial-accent transition-colors" title="Edit Harga">
                                     <Edit3 size={16}/>
                                 </button>

@@ -12,14 +12,14 @@ const Sidebar = ({ userRole, handleLogout }) => {
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign }, // DIUBAH
             { path: '/definitions', label: 'Komponen Pekerjaan', icon: ClipboardList }, // DIUBAH
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings }, // DIUBAH
-            { path: '/settings/work-item-categories', label: 'Kategori Komponen', icon: Settings }, // DIUBAH
+            { path: '/settings/work-item-categories', label: 'Kategori Pekerjaan', icon: Settings }, // DIUBAH
             { path: '/archived', label: 'Arsip', icon: Archive }, // DIUBAH
         ],
         staff_operasional: [
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign }, // DIUBAH
             { path: '/definitions', label: 'Komponen Pekerjaan', icon: ClipboardList }, // DIUBAH
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings }, // DIUBAH
-            { path: '/settings/work-item-categories', label: 'Kelola Kategori Komponen Pekerjaan', icon: Settings }, // DIUBAH
+            { path: '/settings/work-item-categories', label: 'Kategori Pekerjaan', icon: Settings }, // DIUBAH
         ],
     };
 
