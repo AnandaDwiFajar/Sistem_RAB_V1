@@ -34,7 +34,7 @@ const Sidebar = ({ userRole, handleLogout }) => {
     return (
         <aside className="w-64 h-screen bg-industrial-dark text-industrial-light flex flex-col">
             <div className="p-6 border-b border-industrial-gray-dark">
-                <h1 className="text-2xl font-bold text-industrial-accent">Sistem Informasi RAB</h1>
+                <h1 className="text-2xl font-bold white">Sistem Informasi RAB</h1>
                 <p className="text-sm text-industrial-gray">{roleDisplayNames[userRole]}</p>
             </div>
             <nav className="flex-grow p-4">

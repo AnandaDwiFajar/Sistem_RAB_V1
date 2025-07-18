@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { PlusCircle, Save, Trash2, ChevronDown, ChevronUp, Loader2, Pencil } from 'lucide-react';
+import { CSSTransition } from 'react-transition-group';
 import { formatCurrency } from '../utils/helpers';
 import { CALCULATION_SCHEMAS } from '../utils/calculationSchemas';
 
@@ -37,6 +38,7 @@ const ProjectWorkItemsView = ({
     handleStartEditWorkItem,
     handleCancelEditWorkItem,
 }) => {
+    const formRef = useRef(null);
     // Memastikan data dari props aman untuk digunakan
     if (!currentProject) return null;
     const { userWorkItemTemplates = {} } = definitionsManager;
@@ -75,8 +77,14 @@ const ProjectWorkItemsView = ({
                 </div>
             )}
 
-            {showWorkItemForm && (
-                <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg space-y-4 animate-fadeIn">
+            <CSSTransition
+                nodeRef={formRef}
+                in={showWorkItemForm}
+                timeout={500}
+                classNames="form-transition"
+                unmountOnExit
+            >
+                <div ref={formRef} className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg space-y-4 overflow-hidden">
                     <h3 className="text-xl font-bold text-industrial-accent pb-4 border-b border-industrial-gray-light">
                         {editingWorkItemId ? 'Edit Item Pekerjaan' : 'Tambah Item Pekerjaan Baru'}
                     </h3>
@@ -130,7 +138,7 @@ const ProjectWorkItemsView = ({
                         </div>
                     </form>
                 </div>
-            )}
+            </CSSTransition>
             
             {workItems.length > 0 ? (
                 <div className="space-y-3">

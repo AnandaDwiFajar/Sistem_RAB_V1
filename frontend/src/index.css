@@ -15,3 +15,31 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* React Transition Group styles */
+.form-transition-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+  max-height: 0;
+}
+.form-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 1000px; /* Set a sufficiently large value */
+  transition: opacity 300ms ease-in-out, transform 300ms ease-in-out, max-height 500ms ease-in-out;
+}
+.form-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 1000px;
+}
+.form-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  max-height: 0;
+  transition: opacity 300ms ease-in-out, transform 300ms ease-in-out, max-height 500ms ease-in-out;
+}
+
+.form-transition-enter-done, .form-transition-exit-done {
+    max-height: none;
+}

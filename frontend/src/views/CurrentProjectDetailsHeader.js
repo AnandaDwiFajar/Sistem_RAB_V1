@@ -89,18 +89,18 @@ const CurrentProjectDetailsHeader = React.memo(({
                 </div>
                 <button
                     onClick={() => handleGenerateProjectReport(currentProject.id)}
-                    className="bg-green-600 text-white hover:bg-green-700 font-bold py-2 px-4 rounded-md flex items-center transition-all duration-300 disabled:bg-gray-400"
+                    className="bg-industrial-accent text-white hover:bg-industrial-accent/90 font-bold py-2 px-4 rounded-md flex items-center transition-all duration-300 disabled:bg-gray-400"
                     disabled={isGeneratingReport}
                 >
                     {isGeneratingReport ? (
                         <>
                             <Loader2 className="animate-spin mr-2" size={16} />
-                            Generating...
+                            Membuat PDF...
                         </>
                     ) : (
                         <>
                             <FileText size={16} className="mr-2" />
-                            Generate Laporan PDF
+                            Buat Dokumen RAB
                         </>
                     )}
                 </button>
