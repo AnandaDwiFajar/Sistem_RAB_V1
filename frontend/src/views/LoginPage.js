@@ -29,7 +29,7 @@ const LoginPage = () => {
         <div className="flex items-center justify-center min-h-screen bg-industrial-light font-sans">
             <div className="p-10 bg-industrial-white rounded-lg shadow-2xl w-full max-w-md border border-industrial-gray-light">
                 <h1 className="text-3xl font-bold text-industrial-accent mb-2 text-center">
-                    RAB Pro
+                    Sistem Informasi RAB
                 </h1>
                 <p className="text-industrial-gray text-center mb-8">Login untuk Melanjutkan</p>
                 <form onSubmit={handleSubmit} className="space-y-6">

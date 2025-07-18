@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { Briefcase, Download, BrainCircuit, List, LineChart, User, MapPin, Calendar, Award, DollarSign, Target, Percent } from 'lucide-react';
+import { Briefcase, Download, BrainCircuit, List, LineChart, User, MapPin, Calendar, Award, DollarSign, Target, Percent, FileText, Loader2 } from 'lucide-react';
 
 const StatCard = ({ icon, label, value, colorClass = 'text-industrial-accent' }) => {
     const IconComponent = icon;
@@ -80,7 +80,7 @@ const CurrentProjectDetailsHeader = React.memo(({
             </div>
 
             {/* Navigation Tabs */}
-            <div className="border-t border-industrial-gray-light pt-4">
+            <div className="border-t border-industrial-gray-light pt-4 flex justify-between items-center">
                 <div className="flex space-x-2">
                     <button onClick={() => setCurrentProjectView('workItems')} className={navButtonStyle('workItems')}>
                         <Briefcase size={16} className="mr-2"/> Daftar Pekerjaan
@@ -89,6 +89,23 @@ const CurrentProjectDetailsHeader = React.memo(({
                         <DollarSign size={16} className="mr-2"/> Biaya Lain-Lain
                     </button>
                 </div>
+                <button
+                    onClick={() => handleGenerateProjectReport(currentProject.id)}
+                    className="bg-green-600 text-white hover:bg-green-700 font-bold py-2 px-4 rounded-md flex items-center transition-all duration-300 disabled:bg-gray-400"
+                    disabled={isGeneratingReport}
+                >
+                    {isGeneratingReport ? (
+                        <>
+                            <Loader2 className="animate-spin mr-2" size={16} />
+                            Generating...
+                        </>
+                    ) : (
+                        <>
+                            <FileText size={16} className="mr-2" />
+                            Generate Laporan PDF
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );

@@ -12,7 +12,7 @@ import LoginPage from './views/LoginPage';
 import ProjectsView from './views/ProjectsView';
 import MaterialPricesView from './views/MaterialPricesView';
 import WorkItemDefinitionsView from './views/WorkItemDefinitionsView';
-import ArchivedProjectsListView from './views/ArchivedProjectsListView';
+import ArchivedProjectsView from './views/ArchivedProjectsView';
 import ManageUnitsView from './views/ManageUnitsView';
 import ManageWorkItemCategoriesView from './views/ManageWorkItemCategoriesView';
 import ProjectDetailsView from './views/ProjectDetailsView';
@@ -108,7 +108,7 @@ function App() {
                             materialPrices={materialPricesManager.materialPrices}
                         />} 
                     />
-                    <Route path="archived" element={<ArchivedProjectsListView projectsManager={projectsManager} />} />
+                    <Route path="archived" element={<ArchivedProjectsView projectsManager={projectsManager} />} />
                     <Route path="settings/units" element={<ManageUnitsView units={userData.userUnits} setUnits={userData.setUserUnits} />} />
                     <Route path="settings/work-item-categories" element={<ManageWorkItemCategoriesView categories={userData.userWorkItemCategories} setCategories={userData.setUserWorkItemCategories} />} />
                     

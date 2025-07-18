@@ -816,65 +816,58 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
         setIsFetchingProjectInsights(false);
     }, [currentProject, showToast, setIsFetchingProjectInsights, setProjectInsights, setShowInsightsModal]);
 
-    const handleGenerateProjectReport = useCallback(async () => {
-      console.log("Mencoba generate laporan. Nilai ref:", reportContentRef.current);
-      console.log("Proyek yang sedang aktif:", currentProject);
-      if (!reportContentRef.current || !currentProject) {
-          showToast('error', 'Konten laporan tidak ditemukan atau tidak ada proyek yang dipilih.');
+    const handleGenerateProjectReport = useCallback(async (projectId) => {
+      if (!projectId) {
+          showToast('error', 'Project ID tidak ditemukan.');
           return;
       }
-  
+
+      const project = projects.find(p => p.id === projectId) || currentProject;
+      if (!project) {
+          showToast('error', 'Data proyek tidak ditemukan untuk membuat nama file.');
+          return;
+      }
+      
       setIsGeneratingReport(true);
-      showToast('info', 'Membuat laporan PDF...');
-  
+      showToast('info', 'Mempersiapkan laporan PDF...');
+
       try {
-          const canvas = await html2canvas(reportContentRef.current, {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-          });
-  
-          const imgData = canvas.toDataURL('image/png');
-          
-          // BENAR: Menggunakan 'new jsPDF' dengan 'P' kapital
-          const pdf = new jsPDF({
-              orientation: 'portrait',
-              unit: 'mm',
-              format: 'a4',
-          });
-  
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-          const canvasWidth = canvas.width;
-          const canvasHeight = canvas.height;
-          const ratio = canvasWidth / canvasHeight;
-  
-          const widthInPdf = pdfWidth - 20;
-          const heightInPdf = widthInPdf / ratio;
-  
-          let position = 10;
-          pdf.addImage(imgData, 'PNG', 10, position, widthInPdf, heightInPdf);
-          let heightLeft = heightInPdf;
-  
-          heightLeft -= (pdfHeight - 20);
-          while (heightLeft > 0) {
-              position = -heightLeft - 10;
-              pdf.addPage();
-              pdf.addImage(imgData, 'PNG', 10, position, widthInPdf, heightInPdf);
-              heightLeft -= (pdfHeight - 20);
+          // Ganti '/api/projects' jika prefix API Anda berbeda
+          const response = await fetch(`/api/projects/${projectId}/report`);
+
+          if (!response.ok) {
+              // Mencoba membaca pesan error dari backend jika ada
+              const errorText = await response.text();
+              throw new Error(`Gagal membuat laporan: ${response.status} ${errorText}`);
           }
-  
-          const fileName = `Laporan Proyek - ${currentProject.project_name.replace(/\s+/g, '_')}.pdf`;
-          pdf.save(fileName);
-  
-          showToast('success', 'Laporan PDF berhasil dibuat!');
+
+          // Mengambil data sebagai blob (file)
+          const blob = await response.blob();
+          // Membuat URL sementara untuk file blob
+          const url = window.URL.createObjectURL(blob);
+          
+          // Membuat elemen link sementara untuk memicu download
+          const link = document.createElement('a');
+          link.href = url;
+          const fileName = `RAB-${project.project_name.replace(/\s+/g, '_')}.pdf`;
+          link.setAttribute('download', fileName);
+          
+          // Menambahkan link ke body, mengkliknya, lalu menghapusnya
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode.removeChild(link);
+
+          // Melepaskan URL objek setelah selesai
+          window.URL.revokeObjectURL(url);
+          showToast('success', 'Laporan PDF berhasil diunduh.');
+
       } catch (error) {
-          console.error("Gagal membuat PDF:", error);
-          showToast('error', `Gagal membuat PDF: ${error.message}`);
+          console.error("Error generating PDF report:", error);
+          showToast('error', `Gagal mengunduh laporan: ${error.message}`);
       } finally {
           setIsGeneratingReport(false);
       }
-    }, [currentProject, reportContentRef, showToast]);
+  }, [projects, currentProject, showToast]);
 
     const fetchProjectById = useCallback((projectId) => {
       handleSelectProject(projectId);

@@ -12,14 +12,14 @@ const Sidebar = ({ userRole, handleLogout }) => {
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign }, // DIUBAH
             { path: '/definitions', label: 'Komponen Pekerjaan', icon: ClipboardList }, // DIUBAH
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings }, // DIUBAH
-            { path: '/settings/work-item-categories', label: 'Kelola Kategori', icon: Settings }, // DIUBAH
+            { path: '/settings/work-item-categories', label: 'Kategori Komponen', icon: Settings }, // DIUBAH
             { path: '/archived', label: 'Arsip', icon: Archive }, // DIUBAH
         ],
         staff_operasional: [
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign }, // DIUBAH
             { path: '/definitions', label: 'Komponen Pekerjaan', icon: ClipboardList }, // DIUBAH
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings }, // DIUBAH
-            { path: '/settings/work-item-categories', label: 'Kelola Kategori', icon: Settings }, // DIUBAH
+            { path: '/settings/work-item-categories', label: 'Kelola Kategori Komponen Pekerjaan', icon: Settings }, // DIUBAH
         ],
     };
 
@@ -35,7 +35,7 @@ const Sidebar = ({ userRole, handleLogout }) => {
         // Sebaiknya, biarkan App.js yang mengatur layout flexbox
         <aside className="w-64 h-screen bg-industrial-dark text-industrial-light flex flex-col">
             <div className="p-6 border-b border-industrial-gray-dark">
-                <h1 className="text-2xl font-bold text-industrial-accent">RAB Pro</h1>
+                <h1 className="text-2xl font-bold text-industrial-accent">Sistem Informasi RAB</h1>
                 <p className="text-sm text-industrial-gray">{roleDisplayNames[userRole]}</p>
             </div>
             <nav className="flex-grow p-4">
