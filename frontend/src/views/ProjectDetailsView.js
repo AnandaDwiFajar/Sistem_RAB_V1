@@ -40,8 +40,16 @@ const ProjectDetailsView = () => {
     }
 
     return (
-        <div className="p-8">
-            <Link to="/projects" className="text-industrial-accent hover:underline mb-4 inline-block">&larr; Kembali ke Daftar Proyek</Link>
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold text-industrial-dark">Detail Proyek</h1>
+                    <p className="text-sm text-industrial-gray-dark mt-1">
+                        <Link to="/projects" className="text-industrial-accent hover:underline">Daftar Proyek</Link> / {currentProject.project_name}
+                    </p>
+                </div>
+            </div>
+
             <CurrentProjectDetailsHeader
                 {...projectsManager}
                 currentProject={currentProject}

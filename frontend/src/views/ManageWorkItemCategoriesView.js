@@ -98,9 +98,9 @@ const ManageWorkItemCategoriesView = () => {
     );
     
     return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold text-industrial-dark mb-6">Kelola Kategori Komponen Pekerjaan</h1>
-            <div className="flex justify-end items-center space-x-3 mb-6">
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-industrial-dark">Kelola Kategori Komponen Pekerjaan</h1>
                 <button
                     onClick={() => setShowModal(true)}
                     className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"

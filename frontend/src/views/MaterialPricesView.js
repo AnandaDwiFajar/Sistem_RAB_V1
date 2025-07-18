@@ -19,17 +19,6 @@ const MaterialPricesView = ({ materialPricesManager, onAddNew, onEdit }) => {
             </div>
         );
     }
-
-    const ActionButtons = () => (
-        <div className="flex justify-end items-center space-x-3 mb-6">
-            <button
-                onClick={onAddNew}
-                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
-            >
-                <PlusCircle size={18} className="mr-2"/> Tambah Harga Baru
-            </button>
-        </div>
-    );
     
     const NoDataDisplay = () => (
         <div className="text-center py-16 px-6 border-2 border-dashed border-industrial-gray-light rounded-lg">
@@ -80,8 +69,16 @@ const MaterialPricesView = ({ materialPricesManager, onAddNew, onEdit }) => {
     );
 
     return (
-        <div>
-            <ActionButtons />
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-industrial-dark">Harga Material</h1>
+                <button
+                    onClick={onAddNew}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
+                >
+                    <PlusCircle size={18} className="mr-2"/> Tambah Harga Baru
+                </button>
+            </div>
             
             {!isLoading && materialPrices.length === 0 ? <NoDataDisplay /> : <PricesTable />}
         </div>

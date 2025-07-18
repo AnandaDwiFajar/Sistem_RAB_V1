@@ -3,13 +3,6 @@ import { ClipboardList, FilePlus, Info, Edit3, Trash2, PlusCircle, Save, XCircle
 import { CALCULATION_SCHEMAS, getCalculationSchemaTypes } from '../utils/calculationSchemas';
 
 // --- Sub-komponen Tampilan Utama (Tidak berubah dari langkah sebelumnya) ---
-const ActionButtons = ({ onNew }) => (
-    <div className="flex justify-end items-center space-x-3 mb-6">
-        <button onClick={() => onNew(null)} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors">
-            <FilePlus size={18} className="mr-2"/> Tambah Pekerjaan Baru
-        </button>
-    </div>
-);
 const NoDataDisplay = ({ onNew }) => (
     <div className="text-center py-16 px-6 border-2 border-dashed border-industrial-gray-light rounded-lg">
         <ClipboardList size={48} className="mx-auto text-industrial-gray" />
@@ -102,7 +95,7 @@ const WorkItemDefinitionsView = ({
         return (
             <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg animate-fadeIn max-w-4xl mx-auto">
                 <h2 className="text-2xl font-bold text-industrial-accent mb-6 pb-4 border-b border-industrial-gray-light">
-                    {selectedTemplateKeyForEditing ? 'Edit Komponen Pekerjaan' : 'Buat Komponen Pekerjaan Baru'}
+                    {selectedTemplateKeyForEditing ? 'Edit Definisi Pekerjaan' : 'Buat Definisi Pekerjaan Baru'}
                 </h2>
                 
                 <div className="space-y-6">
@@ -163,8 +156,17 @@ const WorkItemDefinitionsView = ({
     
     // --- Tampilan Utama (Daftar) ---
     return (
-        <div className="space-y-8">
-            <ActionButtons onNew={handleOpenTemplateForm} />
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-industrial-dark">Definisi Item Pekerjaan</h1>
+                <button
+                    onClick={() => handleOpenTemplateForm(null)}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
+                >
+                    <FilePlus size={18} className="mr-2"/> Tambah Pekerjaan Baru
+                </button>
+            </div>
+            
             {isLoading && templatesArray.length === 0 && <p className="text-center text-industrial-gray">Memuat definisi...</p>}
             {!isLoading && templatesArray.length === 0 ? <NoDataDisplay onNew={handleOpenTemplateForm} /> : (
                 Object.entries(templatesByCategory).sort(([catA], [catB]) => catA.localeCompare(catB)).map(([categoryName, templates]) => (

@@ -26,9 +26,7 @@ const ArchivedProjectsView = React.memo(({
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-semibold text-sky-600 flex items-center">
-                    <Briefcase size={30} className="mr-3"/>Proyek yang Diarsipkan
-                </h2>
+            <h1 className="text-3xl font-bold text-industrial-dark">Kelola Kategori Komponen Pekerjaan</h1>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {archivedProjects.sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at)).map(proj => (
