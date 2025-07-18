@@ -45,10 +45,12 @@ const CalculationSimulatorView = ({
 
     return (
         <div className="space-y-6">
-             <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg space-y-4 animate-fadeIn">
-                <h3 className="text-xl font-bold text-industrial-accent pb-4 border-b border-industrial-gray-light">
-                    Kalkulator Estimasi Biaya
-                </h3>
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-3xl font-bold text-industrial-dark">Kalkulator Estimasi Biaya</h1>
+                </div>
+            </div>
+             <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-sm space-y-4 animate-fadeIn">
                 <form onSubmit={(e) => { e.preventDefault(); handleCalculate(); }}>
                     <div className="space-y-4">
                         <FormField label="Pilih Item Pekerjaan">
