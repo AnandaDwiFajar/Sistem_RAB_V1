@@ -60,7 +60,7 @@ const WelcomeDashboard = () => {
         <div className="p-4 sm:p-6 lg:p-8 animate-fadeIn">
             <header className="mb-8">
                 <h1 className="text-3xl font-bold text-industrial-dark">Selamat Datang, {userData?.profile?.name || 'Pengguna'}!</h1>
-                <p className="text-industrial-gray-dark mt-1">Berikut adalah ringkasan aktivitas dan data di sistem Anda.</p>
+                <p className="text-industrial-gray-dark mt-1">Berikut adalah ringkasan Proyek RAB anda.</p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

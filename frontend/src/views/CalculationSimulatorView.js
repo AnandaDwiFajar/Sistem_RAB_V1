@@ -44,14 +44,12 @@ const CalculationSimulatorView = ({
     const selectedSchema = selectedTemplate?.calculation_schema_type ? CALCULATION_SCHEMAS[selectedTemplate.calculation_schema_type] : null;
 
     return (
-        <div className="space-y-6">
-            <div className="space-y-6">
-                <div className="flex justify-between items-center">
+        <div className="p-4 sm:p-6 lg:p-8">
+                <div className="pb-6 flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-industrial-dark">Kalkulator Estimasi Biaya</h1>
                 </div>
-            </div>
              <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-sm space-y-4 animate-fadeIn">
-                <form onSubmit={(e) => { e.preventDefault(); handleCalculate(); }}>
+                <form onSubmit={(e) => { e.preventDefault(); handleCalculate(workItemFormData); }}>
                     <div className="space-y-4">
                         <FormField label="Pilih Item Pekerjaan">
                             <FormSelect name="templateKey" value={workItemFormData.templateKey} onChange={handleWorkItemFormChange}>

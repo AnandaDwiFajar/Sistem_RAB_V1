@@ -174,8 +174,8 @@ const WorkItemDefinitionsView = ({
     
     // --- Tampilan Utama (Daftar) ---
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="pb-6 flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-industrial-dark">Daftar Pekerjaan</h1>
                 <button
                     onClick={() => handleOpenTemplateForm(null)}
