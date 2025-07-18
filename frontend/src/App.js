@@ -19,6 +19,7 @@ import ProjectDetailsView from './views/ProjectDetailsView';
 import ProjectReport from './views/ProjectReport';
 import ProjectFormModal from './components/modals/ProjectFormModal';
 import PriceFormModal from './components/modals/PriceFormModal';
+import CalculationSimulatorView from './views/CalculationSimulatorView';
 
 // Komponen Layout untuk Halaman yang Membutuhkan Sidebar
 const AppLayout = ({ projectsManager, materialPricesManager, definitionsManager, userData, handleLogout, userRole }) => (
@@ -86,6 +87,7 @@ function App() {
                 >
                     {/* Halaman default setelah login */}
                     <Route index element={<ProjectsView projectsManager={projectsManager} />} />
+                    <Route path="calculation-simulator" element={<CalculationSimulatorView />} />
                     <Route
                         path="materials"
                         element={

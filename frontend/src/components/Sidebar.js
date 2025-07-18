@@ -1,26 +1,25 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Briefcase, DollarSign, ClipboardList, Archive, LogOut, Settings } from 'lucide-react';
+import { Briefcase, DollarSign, ClipboardList, Archive, LogOut, Settings, Calculator } from 'lucide-react';
 
 const Sidebar = ({ userRole, handleLogout }) => {
     const location = useLocation();
 
-    // Mengganti label sesuai permintaan
     const navItems = {
         admin: [
             { path: '/', label: 'Proyek', icon: Briefcase },
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign },
             { path: '/definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
+            { path: '/calculation-simulator', label: 'Simulasi Kalkulasi', icon: Calculator },
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings },
-            // JUDUL TELAH DIGANTI DI SINI
             { path: '/settings/work-item-categories', label: 'Kelola Kategori Pekerjaan', icon: Settings },
             { path: '/archived', label: 'Arsip', icon: Archive },
         ],
         staff_operasional: [
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign },
             { path: '/definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
+            { path: '/calculation-simulator', label: 'Simulasi Kalkulasi', icon: Calculator },
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings },
-             // JUDUL TELAH DIGANTI DI SINI
             { path: '/settings/work-item-categories', label: 'Kelola Kategori Pekerjaan', icon: Settings },
         ],
     };
@@ -44,13 +43,12 @@ const Sidebar = ({ userRole, handleLogout }) => {
                         <li key={item.path} className="mb-2">
                             <Link
                                 to={item.path}
-                                // SOLUSI DITERAPKAN DI SINI: items-center diubah menjadi items-start
                                 className={`w-full flex items-center p-3 rounded-md text-left transition-colors ${
                                     location.pathname === item.path ? 'bg-industrial-accent text-white' : 'hover:bg-industrial-gray-dark'
                                 }`}
                             >
-                                <item.icon size={20} className="mr-3 flex-shrink-0" /> {/* Menambahkan flex-shrink-0 untuk keamanan */}
-                                <span>{item.label}</span> {/* Membungkus label dengan span untuk konsistensi */}
+                                <item.icon size={20} className="mr-3 flex-shrink-0" />
+                                <span>{item.label}</span>
                             </Link>
                         </li>
                     ))}
