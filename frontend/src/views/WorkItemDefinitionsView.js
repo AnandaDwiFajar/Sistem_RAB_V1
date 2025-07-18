@@ -176,7 +176,7 @@ const WorkItemDefinitionsView = ({
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-industrial-dark">Definisi Item Pekerjaan</h1>
+                <h1 className="text-3xl font-bold text-industrial-dark">Daftar Pekerjaan</h1>
                 <button
                     onClick={() => handleOpenTemplateForm(null)}
                     className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
@@ -186,13 +186,11 @@ const WorkItemDefinitionsView = ({
             </div>
             
             {isLoading && sortedTemplates.length === 0 && <p className="text-center text-industrial-gray">Memuat definisi...</p>}
-            
-            {!isLoading && sortedTemplates.length === 0  ? <NoDataDisplay onNew={handleOpenTemplateForm} />  : <DefinitionsTable 
+            {!isLoading && sortedTemplates.length === 0 ? <NoDataDisplay onNew={handleOpenTemplateForm} /> : <DefinitionsTable 
                     templates={sortedTemplates} 
                     onEdit={handleOpenTemplateForm} 
                     onDelete={handleDeleteWorkItemDefinition}
-                  />
-            }
+                  />}
         </div>
     );
 };

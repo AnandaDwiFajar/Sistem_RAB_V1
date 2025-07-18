@@ -57,10 +57,7 @@ function ArchivedProjectsListView({ archivedProjects, isLoading, handleUnarchive
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-industrial-dark">Proyek yang Diarsipkan</h1>
-            {(!archivedProjects || archivedProjects.length === 0)
-                ? <NoArchivedProjects />
-                : <ArchivedProjectsTable projects={archivedProjects} onUnarchive={handleUnarchiveProject} />
-            }
+            {(!archivedProjects || archivedProjects.length === 0) ? <NoArchivedProjects /> : <ArchivedProjectsTable projects={archivedProjects} onUnarchive={handleUnarchiveProject} />}
         </div>
     );
 }
