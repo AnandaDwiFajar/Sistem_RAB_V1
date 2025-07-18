@@ -21,6 +21,7 @@ import ProjectReport from './views/ProjectReport';
 import ProjectFormModal from './components/modals/ProjectFormModal';
 import PriceFormModal from './components/modals/PriceFormModal';
 import CalculationSimulatorView from './views/CalculationSimulatorView';
+import WelcomeDashboard from './views/WelcomeDashboard';
 
 // Komponen Layout untuk Halaman yang Membutuhkan Sidebar
 const AppLayout = ({ projectsManager, materialPricesManager, definitionsManager, userData, handleLogout, userRole }) => (
@@ -67,32 +68,33 @@ function App() {
         }
     }, []);
 
-    const handleCalculate = useCallback(async () => {
-        setIsCalculating(true);
-        setSimulatedWorkItem(null);
+    const handleCalculate = useCallback(async (formData, isSilent = false) => {
+        if (!isSilent) setIsCalculating(true);
+        if (!isSilent) setSimulatedWorkItem(null);
         try {
-            const template = definitionsManager.userWorkItemTemplates[workItemFormData.templateKey];
+            const template = definitionsManager.userWorkItemTemplates[formData.templateKey];
             if (!template) {
-                showToast('error', 'Silakan pilih item pekerjaan terlebih dahulu.');
-                return;
+                if (!isSilent) showToast('error', 'Silakan pilih item pekerjaan terlebih dahulu.');
+                return null;
             }
             
             const calculatedData = calculateWorkItem(
                 template,
-                workItemFormData.primaryInputValue,
+                formData.primaryInputValue,
                 materialPricesManager.materialPrices,
-                workItemFormData.parameterValues
+                formData.parameterValues
             );
 
-            setSimulatedWorkItem(calculatedData);
+            if (!isSilent) setSimulatedWorkItem(calculatedData);
+            return calculatedData;
         } catch (error) {
             console.error("Calculation failed:", error);
-            showToast('error', `Gagal melakukan perhitungan: ${error.message}`);
+            if (!isSilent) showToast('error', `Gagal melakukan perhitungan: ${error.message}`);
+            return null;
         } finally {
-            setIsCalculating(false);
+            if (!isSilent) setIsCalculating(false);
         }
     }, [
-        workItemFormData, 
         definitionsManager.userWorkItemTemplates, 
         materialPricesManager.materialPrices, 
         showToast
@@ -127,7 +129,7 @@ function App() {
             <Routes>
                 {/* Rute untuk pengguna yang sudah login */}
                 <Route 
-                    path="/*" 
+                    path="/" 
                     element={
                         userId ? 
                         <AppLayout 
@@ -141,8 +143,11 @@ function App() {
                         <Navigate to="/login" />
                     }
                 >
-                    {/* Halaman default setelah login */}
-                    <Route index element={<ProjectsView projectsManager={projectsManager} />} />
+                    {/* Halaman default setelah login adalah WelcomeDashboard */}
+                    <Route index element={<WelcomeDashboard />} />
+
+                    <Route path="projects" element={<ProjectsView projectsManager={projectsManager} />} />
+
                     <Route 
                         path="calculation-simulator" 
                         element={

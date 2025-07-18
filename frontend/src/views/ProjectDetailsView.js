@@ -4,6 +4,7 @@ import CurrentProjectDetailsHeader from './CurrentProjectDetailsHeader';
 import { Loader2 } from 'lucide-react';
 import ProjectWorkItemsView from './ProjectWorkItemsView';
 import ProjectCashFlowView from './ProjectCashFlowView';
+import WelcomeDashboard from './WelcomeDashboard'; // Impor komponen WelcomeDashboard
 
 const ProjectDetailsView = () => {
     const { projectId } = useParams();
@@ -24,13 +25,22 @@ const ProjectDetailsView = () => {
     useEffect(() => {
         if (projectId) {
             fetchProjectById(projectId);
+        } else {
+            // Jika tidak ada projectId, set currentProject ke null
+            projectsManager.setCurrentProject(null);
         }
-        // Pastikan untuk membersihkan project saat komponen di-unmount
-        // atau saat ID proyek berubah untuk menghindari menampilkan data lama.
+        // Cleanup function
         return () => {
-            projectsManager.setCurrentProject(null); 
+            if(projectId) {
+                projectsManager.setCurrentProject(null); 
+            }
         };
     }, [projectId, fetchProjectById]);
+
+    // Tampilkan WelcomeDashboard jika tidak ada projectId
+    if (!projectId) {
+        return <WelcomeDashboard />;
+    }
 
     if (isLoading || !projectsManager || !definitionsManager || !userData) {
         return <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin mr-2" /> Memuat data proyek...</div>;
@@ -44,7 +54,7 @@ const ProjectDetailsView = () => {
         return (
             <div className="text-center p-8">
                 <p>Proyek tidak ditemukan atau sedang dimuat...</p>
-                <button onClick={() => navigate('/')} className="mt-4 text-industrial-accent hover:underline">
+                <button onClick={() => navigate('/projects')} className="mt-4 text-industrial-accent hover:underline">
                     Kembali ke Daftar Proyek
                 </button>
             </div>
@@ -57,7 +67,7 @@ const ProjectDetailsView = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-industrial-dark">Detail Proyek</h1>
                     <p className="text-sm text-industrial-gray-dark mt-1">
-                        <Link to="/" className="text-industrial-accent hover:underline">Daftar Proyek</Link> / {currentProject.project_name}
+                        <Link to="/projects" className="text-industrial-accent hover:underline">Daftar Proyek</Link> / {currentProject.project_name}
                     </p>
                 </div>
             </div>
@@ -67,11 +77,11 @@ const ProjectDetailsView = () => {
                 currentProjectView={currentProjectView}
                 setCurrentProjectView={setCurrentProjectView}
                 // Teruskan fungsi yang relevan dari projectsManager
-                handleArchiveProject={projectsManager.handleArchiveProject}
-                handleDeleteProject={projectsManager.handleDeleteProject}
-                handleStartEditProject={projectsManager.handleStartEditProject}
-                 handleGenerateProjectReport={projectsManager.handleGenerateProjectReport}
-                 isGeneratingReport={projectsManager.isGeneratingReport}
+                handleArchiveProject={() => projectsManager.handleArchiveProject(currentProject.id)}
+                handleDeleteProject={() => projectsManager.handleDeleteProject(currentProject.id)}
+                handleStartEditProject={() => projectsManager.handleStartEditProject(currentProject)}
+                handleGenerateProjectReport={() => projectsManager.handleGenerateProjectReport(currentProject.id)}
+                isGeneratingReport={projectsManager.isGeneratingReport}
             />
             
             <div className="mt-6">
@@ -80,13 +90,13 @@ const ProjectDetailsView = () => {
                         currentProject={currentProject}
                         definitionsManager={definitionsManager}
                         userWorkItemCategories={userData.userWorkItemCategories}
-                        {...projectsManager} // Teruskan semua props dari projectsManager
+                        {...projectsManager} 
                     />
                 ) : (
                     <ProjectCashFlowView 
                         currentProject={currentProject}
                         userCashFlowCategories={userData.userCashFlowCategories}
-                        {...projectsManager} // Teruskan semua props dari projectsManager
+                        {...projectsManager}
                     />
                 )}
             </div>

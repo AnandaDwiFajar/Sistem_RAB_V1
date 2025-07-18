@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Briefcase, DollarSign, ClipboardList, Archive, LogOut, Settings, Calculator } from 'lucide-react';
+import { Home, Briefcase, DollarSign, ClipboardList, Archive, LogOut, Settings, Calculator } from 'lucide-react';
 
 const Sidebar = ({ userRole, handleLogout }) => {
     const location = useLocation();
 
     const navItems = {
         admin: [
-            { path: '/', label: 'Proyek', icon: Briefcase },
+            { path: '/', label: 'Dashboard', icon: Home },
+            { path: '/projects', label: 'Proyek', icon: Briefcase },
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign },
             { path: '/definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings },
@@ -16,6 +17,7 @@ const Sidebar = ({ userRole, handleLogout }) => {
             { path: '/archived', label: 'Arsip', icon: Archive },
         ],
         staff_operasional: [
+            { path: '/', label: 'Dashboard', icon: Home },
             { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign },
             { path: '/definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings },
