@@ -22,6 +22,7 @@ const Sidebar = ({ userRole, handleLogout }) => {
             { path: '/definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings },
             { path: '/settings/work-item-categories', label: 'Kelola Kategori Pekerjaan', icon: Settings },
+            { path: '/calculation-simulator', label: 'Simulasi Kalkulasi', icon: Calculator },
         ],
     };
 
