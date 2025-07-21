@@ -1,6 +1,7 @@
-import React from 'react';
-import { PlusCircle, Save, Edit3, Trash2, Settings, DollarSign } from 'lucide-react';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import React, { useRef } from 'react';
+import { PlusCircle, Save, Edit3, Trash2, DollarSign } from 'lucide-react';
+import { formatCurrency } from '../utils/helpers';
+import { CSSTransition } from 'react-transition-group';
 
 // --- Reusable Form Components for Consistency ---
 const FormField = ({ label, children }) => (
@@ -33,8 +34,8 @@ const ProjectCashFlowView = ({
     handleCancelCashFlowForm,
     // Props dari App.js
     userCashFlowCategories = [], // Default ke array kosong untuk keamanan
-    setShowManageCashFlowCategoriesModal,
 }) => {
+    const formRef = useRef(null);
     // --- Defensive Coding: Pastikan data adalah array ---
     const cashFlowEntries = Array.isArray(currentProject?.cashFlowEntries) ? currentProject.cashFlowEntries : [];
     const safeCategories = Array.isArray(userCashFlowCategories) ? userCashFlowCategories : [];
@@ -49,54 +50,44 @@ const ProjectCashFlowView = ({
         <div className="space-y-6">
             <div className="flex justify-end items-center space-x-3">
                 <button
-                    onClick={() => setShowManageCashFlowCategoriesModal(true)}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-industrial-dark border border-industrial-gray-light rounded-md hover:bg-gray-100 transition-colors"
-                >
-                    <Settings size={18} className="mr-2"/> Kelola Kategori
-                </button>
-                <button
                     onClick={showCashFlowForm ? handleCancelCashFlowForm : handleAddNewEntry} // <-- Logika yang disederhanakan
                     className="flex items-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors"
                 >
                     <PlusCircle size={18} className="mr-2"/> {showCashFlowForm ? 'Batal' : 'Tambah Biaya Lain'}
                 </button>
             </div>
-
-            {showCashFlowForm && (
-                <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg space-y-4 animate-fadeIn">
+            <CSSTransition
+                nodeRef={formRef}
+                in={showCashFlowForm}
+                timeout={300}
+                classNames="form-transition"
+                unmountOnExit
+            >
+                            <div ref={formRef} className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg space-y-4 animate-fadeIn">
                     <h3 className="text-xl font-bold text-industrial-accent pb-4 border-b border-industrial-gray-light">
                         {editingCashFlowEntry ? 'Edit Biaya Lain' : 'Tambah Biaya Lain Baru'}
                     </h3>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
                         <FormField label="Deskripsi Biaya">
                             <FormInput
                                 type="text"
                                 name="description"
                                 value={cashFlowFormData.description}
                                 onChange={handleCashFlowFormChange}
-                                placeholder="Contoh: Pembelian paku, Upah mandor"
+                                placeholder="Contoh: Biaya Overhead, Biaya Lain"
                             />
                         </FormField>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField label="Jumlah (Rp)">
-                                <FormInput
-                                    type="number"
-                                    name="amount"
-                                    value={cashFlowFormData.amount}
-                                    onChange={handleCashFlowFormChange}
-                                    placeholder="500000"
-                                    min="0"
-                                />
-                            </FormField>
-                            <FormField label="Kategori">
-                                <FormSelect name="categoryId" value={cashFlowFormData.categoryId} onChange={handleCashFlowFormChange}>
-                                    <option value="">-- Pilih Kategori --</option>
-                                    {safeCategories.filter(cat => cat.category_name !== 'Harga Proyek').map(cat => (
-                                        <option key={cat.id} value={cat.id}>{cat.category_name}</option>
-                                    ))}
-                                </FormSelect>
-                            </FormField>
-                        </div>
+
+                        <FormField label="Jumlah (Rp)">
+                            <FormInput
+                                type="number"
+                                name="amount"
+                                value={cashFlowFormData.amount}
+                                onChange={handleCashFlowFormChange}
+                                placeholder="500000"
+                                min="0"
+                            />
+                        </FormField>
                     </div>
                     <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-industrial-gray-light">
                         <button type="button" onClick={handleCancelCashFlowForm} className="px-5 py-2 text-sm font-medium text-industrial-dark bg-industrial-gray-light/50 border border-industrial-gray-light rounded-md hover:bg-industrial-gray-light">
@@ -107,7 +98,7 @@ const ProjectCashFlowView = ({
                         </button>
                     </div>
                 </div>
-            )}
+            </CSSTransition>
 
             {cashFlowEntries.length > 0 ? (
                 <div className="overflow-x-auto bg-white border border-industrial-gray-light rounded-lg shadow-sm">
@@ -115,20 +106,18 @@ const ProjectCashFlowView = ({
                         <thead className="bg-gray-50 border-b border-industrial-gray-light">
                             <tr>
                                 <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Deskripsi</th>
-                                <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">Kategori</th>
                                 <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Jumlah</th>
-                                <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-center">Aksi</th>
+                                <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="text-industrial-dark">
                             {cashFlowEntries.map(entry => (
                                 <tr key={entry.id} className="border-b border-industrial-gray-light hover:bg-gray-50/50">
                                     <td className="p-4 font-medium">{entry.description}</td>
-                                    <td className="p-4 text-industrial-gray-dark">{getCategoryName(entry.category_id)}</td>
                                     <td className={`p-4 font-semibold text-right ${entry.entry_type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                                         {entry.entry_type === 'income' ? '+' : '-'} {formatCurrency(parseFloat(entry.amount))}
                                     </td>
-                                    <td className="p-4 text-center">
+                                    <td className="p-4 text-right">
                                         {!entry.is_auto_generated && (
                                             <>
                                                 <button onClick={() => handleEditCashFlowEntry(entry)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Edit3 size={16}/></button>

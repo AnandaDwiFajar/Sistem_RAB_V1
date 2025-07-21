@@ -59,7 +59,7 @@ const WelcomeDashboard = () => {
     return (
         <div className="p-4 sm:p-6 lg:p-8 animate-fadeIn">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold text-industrial-dark">Selamat Datang, {userData?.profile?.name || 'Pengguna'}!</h1>
+                <h1 className="text-3xl font-bold text-industrial-dark">Selamat Datang!</h1>
                 <p className="text-industrial-gray-dark mt-1">Berikut adalah ringkasan Proyek RAB anda.</p>
             </header>
 

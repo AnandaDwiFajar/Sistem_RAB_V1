@@ -86,7 +86,7 @@ const ProjectFormModal = ({
                         />
                     </FormField>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div className="pb-4 grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                         <FormField label="Tanggal Mulai">
                             <FormInput type="date" name="startDate" value={formData.startDate} onChange={handleFormChange} error={dateError} />
                         </FormField>

@@ -26,7 +26,7 @@ const ArchivedProjectsTable = ({ projects, onUnarchive }) => (
                     <tr key={project.id} className="border-b border-industrial-gray-light hover:bg-gray-50/50 transition-colors">
                         <td className="p-4 font-medium">{project.project_name}</td>
                         <td className="p-4 text-industrial-gray-dark">{formatDate(project.created_at)}</td>
-                        <td className="p-4 font-semibold text-center">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(project.total_budget_plan_cost || 0)}
+                        <td className="p-4 font-semibold text-center">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(project.total_cost || 0)}
                         </td>
                         <td className="p-4 text-right">
                             <button

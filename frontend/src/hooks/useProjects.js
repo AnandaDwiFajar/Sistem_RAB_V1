@@ -636,7 +636,7 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
     
     // Cash Flow Handlers (within a project)
     const handleSaveCashFlowEntry = useCallback(async () => {
-        if (!cashFlowFormData.description?.trim() || !cashFlowFormData.amount || !cashFlowFormData.date || !cashFlowFormData.categoryId) {
+        if (!cashFlowFormData.description?.trim() || !cashFlowFormData.amount || !cashFlowFormData.date) {
           showToast('error', 'Date, Description, Amount, and Category are required.'); return;
         }
         const amountValue = parseFloat(cashFlowFormData.amount);
@@ -664,7 +664,7 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
           showToast('success', `Biaya Lain-Lain ${editingCashFlowEntry ? 'diperbarui' : 'ditambahkan'}!`);
           setShowCashFlowForm(false); setEditingCashFlowEntry(null);
           const firstCfCategory = userCashFlowCategories.length > 0 ? userCashFlowCategories[0] : { id: '' };
-          setCashFlowFormData({ date: new Date().toISOString().split('T')[0], description: '', type: '', amount: '', categoryId: firstCfCategory.id });
+          setCashFlowFormData({ date: new Date().toISOString().split('T')[0], description: '', type: 'other', amount: '', categoryId: firstCfCategory.id });
         } catch (e) { console.error("Error saving cash flow entry:", e); showToast('error', `Save cash flow entry error: ${e.message}`); }
         setIsSavingCashFlowEntry(false);
     }, [cashFlowFormData, currentProject, userId, apiService, editingCashFlowEntry, setCurrentProject, setProjects, showToast, setShowCashFlowForm, setEditingCashFlowEntry, userCashFlowCategories, setCashFlowFormData, setIsSavingCashFlowEntry]);
@@ -687,7 +687,7 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
           setCashFlowFormData({
               date: new Date().toISOString().split('T')[0],
               description: '',
-              type: 'expense', // Selalu default ke 'expense' untuk entri baru
+              type: 'other', // Selalu default ke 'expense' untuk entri baru
               amount: '',
               categoryId: '' // Biarkan kosong agar user memilih
           });
@@ -699,7 +699,7 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
   const handleCancelCashFlowForm = useCallback(() => {
       setShowCashFlowForm(false);
       setEditingCashFlowEntry(null);
-      setCashFlowFormData({ date: new Date().toISOString().split('T')[0], description: '', type: 'expense', amount: '', categoryId: '' });
+      setCashFlowFormData({ date: new Date().toISOString().split('T')[0], description: '', type: 'other', amount: '', categoryId: '' });
   }, []);
 
     const handleDeleteCashFlowEntry = useCallback(async (entryId) => {

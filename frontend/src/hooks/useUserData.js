@@ -10,11 +10,9 @@ export const useUserData = () => {
 
     const [userWorkItemCategories, setUserWorkItemCategories] = useState([]);
     const [userUnits, setUserUnits] = useState([]);
-    const [userCashFlowCategories, setUserCashFlowCategories] = useState([]);
 
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newUnitName, setNewUnitName] = useState('');
-    const [newCashFlowCategoryName, setNewCashFlowCategoryName] = useState('');
 
     const isUnitValid = (unit) => {
         return unit && unit.id && typeof unit.unit_name === 'string' && unit.unit_name.trim() !== '';
@@ -25,7 +23,6 @@ export const useUserData = () => {
         if (!userId) {
             setUserWorkItemCategories([]);
             setUserUnits([]);
-            setUserCashFlowCategories([]);
             return;
         }
 
@@ -40,13 +37,6 @@ export const useUserData = () => {
             .then(data => setUserUnits(data || []))
             .catch(err => {
                 showToast('error', 'Gagal memuat satuan.');
-                console.error(err);
-            });
-
-        apiService.fetchCashFlowCategories(userId)
-            .then(data => setUserCashFlowCategories(data || []))
-            .catch(err => {
-                showToast('error', 'Gagal memuat kategori arus kas.');
                 console.error(err);
             });
     }, [userId, showToast]);
@@ -95,19 +85,6 @@ export const useUserData = () => {
             showToast('error', `Gagal menambahkan satuan: ${error.message}`);
         }
     }, [newUnitName, userId, showToast]);
-
-    const handleAddNewCashFlowCategory = useCallback(async () => {
-       if (!newCashFlowCategoryName.trim()) { showToast('error', 'Nama kategori tidak boleh kosong.'); return; }
-        try {
-            const addedCategory = await apiService.addCashFlowCategoryApi(userId, newCashFlowCategoryName.trim());
-            setUserCashFlowCategories(prev => [...prev, addedCategory].sort((a, b) => a.category_name.localeCompare(b.category_name)));
-            setNewCashFlowCategoryName('');
-            showToast('success', `Kategori arus kas "${addedCategory.category_name}" ditambahkan.`);
-        } catch (error)
-        {
-            showToast('error', `Gagal menambahkan kategori arus kas: ${error.message}`);
-        }
-    }, [newCashFlowCategoryName, userId, showToast]);
     
     // --- UPDATE HANDLERS ---
     const handleUpdateUnit = useCallback(async (unitId, newName) => {
@@ -148,25 +125,6 @@ export const useUserData = () => {
             showToast('error', `Gagal memperbarui kategori: ${error.message}`);
         }
     }, [userId, showToast]);
-
-    const handleUpdateCashFlowCategory = useCallback(async (categoryId, newName) => {
-        if (!newName.trim()) {
-            showToast('error', 'Nama kategori tidak boleh kosong.');
-            return;
-        }
-        try {
-            const updatedCategory = await apiService.updateCashFlowCategoryApi(categoryId, { category_name: newName.trim() });
-            setUserCashFlowCategories(prev =>
-                prev.map(cat =>
-                    cat.id === categoryId ? { ...cat, ...updatedCategory } : cat
-                ).sort((a, b) => (a.category_name || '').localeCompare(b.category_name || ''))
-            );
-            showToast('success', `Kategori "${updatedCategory.category_name}" berhasil diperbarui.`);
-        } catch (error) {
-            console.error("Error updating cash flow category:", error);
-            showToast('error', `Gagal memperbarui kategori: ${error.message}`);
-        }
-    }, [showToast]);
 
 
     // --- DELETE HANDLERS ---
@@ -274,21 +232,15 @@ export const useUserData = () => {
     return {
         userWorkItemCategories,
         userUnits,
-        userCashFlowCategories,
         newCategoryName,
         setNewCategoryName,
         newUnitName,
         setNewUnitName,
-        newCashFlowCategoryName,
-        setNewCashFlowCategoryName,
         handleAddNewWorkItemCategory,
         handleAddNewUnit,
-        handleAddNewCashFlowCategory,
         handleUpdateUnit,
         handleUpdateWorkItemCategory,
         handleDeleteWorkItemCategory,
         handleDeleteUnit,
-        handleDeleteCashFlowCategory,
-        handleUpdateCashFlowCategory,
     };
 };

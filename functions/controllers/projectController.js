@@ -7,119 +7,98 @@ const getUserIdFromRequest = (req) => req.params.userId || req.body.userId || re
 
 // --- INTERNAL HELPER FUNCTION to get full project details ---
 async function getFullProjectDetails(projectId, userId, dbClient) {
-    // 1. Ambil data proyek utama DENGAN VALIDASI KEPEMILIKAN
     const [projectRows] = await dbClient.query(
-        'SELECT * FROM projects WHERE id = ? AND user_id = ?',
-        [projectId, userId]
+        'SELECT * FROM projects WHERE id = ?',
+        [projectId] // Cukup projectId, karena kepemilikan sudah divalidasi di controller
     );
 
     if (projectRows.length === 0) {
-        return null; // Proyek tidak ditemukan atau bukan milik pengguna
+        return null;
     }
     const project = projectRows[0];
 
-    // Parse nilai numerik dan boolean, dengan fallback jika nilai null
-    project.direct_cost_estimate = parseFloat(project.direct_cost_estimate || 0);
-    project.project_price = parseFloat(project.project_price || 0);
-    project.total_calculated_income = parseFloat(project.total_calculated_income || 0);
+    // Parse main numeric fields and boolean
+    project.direct_cost_estimate = parseFloat(project.direct_cost_estimate);
+    project.project_price = parseFloat(project.project_price);
+    project.total_calculated_income = parseFloat(project.total_calculated_income);
     project.is_archived = Boolean(project.is_archived);
-    project.total_budget_plan_cost = parseFloat(project.total_budget_plan_cost || 0);
+    project.total_budget_plan_cost = parseFloat(project.total_budget_plan_cost);
 
-    // 2. Ambil SEMUA item pekerjaan dan komponennya dalam SATU query (Menghindari N+1)
-    const workItemsAndComponentsSQL = `
+    // ====================== PERBAIKAN UTAMA DI SINI ======================
+    // 2. Fetch associated work items DENGAN JOIN untuk mendapatkan category_id
+    const workItemsSQL = `
         SELECT 
-            pwi.id AS work_item_id,
+            pwi.id, 
             pwi.source_definition_id_snapshot,
             pwi.definition_name_snapshot,
             pwi.definition_key_snapshot,
-            pwi.calculation_value,
+            pwi.calculation_value, 
             pwi.primary_input_display_snapshot,
             pwi.total_item_cost_snapshot,
             pwi.added_at,
-            pwi.input_details_json,
+            pwi.input_details_json, 
             pwi.output_details_json,
             pwi.schema_type AS calculation_schema_type_snapshot,
-            wic.category_id,
-            wcat.category_name,
-            pwics.id AS component_snapshot_id, 
-            pwics.component_name_snapshot,
-            pwics.unit_snapshot,
-            pwics.coefficient_snapshot,
-            pwics.component_type_snapshot,
-            pwics.quantity_calculated,
-            pwics.price_per_unit_snapshot,
-            pwics.cost_calculated,
-            pwics.source_material_price_id_snapshot
+            wd.category_id 
         FROM 
             project_work_items pwi
         LEFT JOIN 
-            work_item_definitions wd ON pwi.source_definition_id_snapshot = wd.id
-        LEFT JOIN
-            work_item_categories wcat ON wd.category_id = wcat.id
-        LEFT JOIN 
-            project_work_item_components_snapshot pwics ON pwics.project_work_item_id = pwi.id
+            work_item_components wd ON pwi.source_definition_id_snapshot = wd.id
         WHERE 
             pwi.project_id = ?
         ORDER BY 
-            pwi.added_at DESC, pwics.id;
-    `;
-    const [rows] = await dbClient.query(workItemsAndComponentsSQL, [projectId]);
+            pwi.added_at DESC`;
+    // ===================================================================
+            
+    const [workItemsRows] = await dbClient.query(workItemsSQL, [projectId]);
 
-    const workItemsMap = new Map();
-    for (const row of rows) {
-        if (!workItemsMap.has(row.work_item_id)) {
+    project.workItems = await Promise.all(
+        workItemsRows.map(async (wi) => {
+            const componentsSQL = `
+                SELECT 
+                    pwics.id AS component_snapshot_id, 
+                    pwics.component_name_snapshot,
+                    pwics.unit_snapshot,
+                    pwics.coefficient_snapshot,
+                    pwics.component_type_snapshot,
+                    pwics.quantity_calculated,
+                    pwics.price_per_unit_snapshot,
+                    pwics.cost_calculated,
+                    pwics.source_material_price_id_snapshot
+                FROM project_work_item_components_snapshot pwics
+                WHERE pwics.project_work_item_id = ?`;
+            const [comps] = await dbClient.query(componentsSQL, [wi.id]);
             let inputDetailsSnapshot = {};
-            let outputDetailsSnapshot = {};
             try {
-                inputDetailsSnapshot = JSON.parse(row.input_details_json || '{}');
-                outputDetailsSnapshot = JSON.parse(row.output_details_json || '{}');
+                // Ganti nama `input_details_json` menjadi `input_details_snapshot` agar sesuai dengan frontend
+                inputDetailsSnapshot = JSON.parse(wi.input_details_json || '{}');
             } catch (e) {
-                console.error(`Gagal parse JSON untuk work item ${row.work_item_id}`);
+                console.error(`Gagal parse input_details_json untuk work item ${wi.id}:`, wi.input_details_json);
             }
-
-            workItemsMap.set(row.work_item_id, {
-                id: row.work_item_id,
-                source_definition_id_snapshot: row.source_definition_id_snapshot,
-                definition_name_snapshot: row.definition_name_snapshot,
-                definition_key_snapshot: row.definition_key_snapshot,
-                calculation_value: parseFloat(row.calculation_value || 0),
-                primary_input_display_snapshot: row.primary_input_display_snapshot,
-                total_item_cost_snapshot: parseFloat(row.total_item_cost_snapshot || 0),
-                added_at: row.added_at,
-                input_details_snapshot: inputDetailsSnapshot, // Nama konsisten
-                output_details_snapshot: outputDetailsSnapshot, // Nama konsisten
-                calculation_schema_type_snapshot: row.calculation_schema_type_snapshot,
-                category_id: row.category_id,
-                category_name: row.category_name, // <-- NAMA KATEGORI SEKARANG TERSEDIA
-                components_snapshot: [] // Siapkan array kosong untuk komponen
-            });
-        }
-        
-        // Jika ada data komponen di baris ini, tambahkan ke item pekerjaan yang sesuai
-        if (row.component_snapshot_id) {
-            workItemsMap.get(row.work_item_id).components_snapshot.push({
-                component_snapshot_id: row.component_snapshot_id,
-                component_name_snapshot: row.component_name_snapshot,
-                unit_snapshot: row.unit_snapshot,
-                coefficient_snapshot: parseFloat(row.coefficient_snapshot || 0),
-                component_type_snapshot: row.component_type_snapshot,
-                quantity_calculated: parseFloat(row.quantity_calculated || 0),
-                price_per_unit_snapshot: parseFloat(row.price_per_unit_snapshot || 0),
-                cost_calculated: parseFloat(row.cost_calculated || 0),
-                source_material_price_id_snapshot: row.source_material_price_id_snapshot
-            });
-        }
-    }
-    project.workItems = Array.from(workItemsMap.values());
+            return {
+                ...wi,
+                input_details_snapshot: inputDetailsSnapshot,
+                calculation_value: parseFloat(wi.calculation_value),
+                total_item_cost_snapshot: parseFloat(wi.total_item_cost_snapshot),
+                components_snapshot: comps.map(c => ({
+                    ...c,
+                    coefficient_snapshot: parseFloat(c.coefficient_snapshot),
+                    quantity_calculated: parseFloat(c.quantity_calculated),
+                    price_per_unit_snapshot: parseFloat(c.price_per_unit_snapshot),
+                    cost_calculated: parseFloat(c.cost_calculated)
+                }))
+            };
+        })
+    );
 
     // 3. Fetch associated cash flow entries (tidak ada perubahan)
     const cashFlowSQL = `
       SELECT 
-        pt.id, pt.transaction_date AS entry_date, pt.details AS description,
-        pt.transaction_value AS amount,
-        pt.transaction_category_id AS category_id, udt.category_name AS cash_flow_category_name
+        pt.id, 
+        pt.transaction_date AS entry_date, 
+        pt.details AS description,
+        pt.transaction_value AS amount
       FROM project_transactions pt
-      LEFT JOIN other_cost_categories udt ON pt.transaction_category_id = udt.id
       WHERE pt.project_id = ?
       ORDER BY pt.transaction_date DESC, pt.created_at DESC
     `;
@@ -136,9 +115,8 @@ exports.getUserProjects = async (req, res) => {
         const [projects] = await pool.query(
             `SELECT id, project_name, customer_name, direct_cost_estimate, project_price, total_budget_plan_cost, created_at, is_archived 
              FROM projects 
-             WHERE is_archived = FALSE AND **user_id = ?**
+             WHERE is_archived = FALSE 
              ORDER BY created_at DESC`,
-            [userId]
           );
         const formattedProjects = projects.map(p => ({
             ...p,
@@ -271,18 +249,16 @@ exports.getArchivedUserProjects = async (req, res) => {
                 p.created_at, 
                 p.updated_at, 
                 p.is_archived,
-                -- Alihkan nama kolom 'total_budget_plan_cost' menjadi 'total_cost' agar cocok dengan frontend
                 p.total_budget_plan_cost AS total_cost,
-                -- Hitung jumlah item pekerjaan (work items) dari tabel relasi
                 COUNT(pwi.id) AS work_items_count
             FROM 
                 projects p
-            -- Gunakan LEFT JOIN agar proyek tanpa item pekerjaan tetap muncul (dengan hitungan 0)
+            LEFT JOIN 
+                project_transactions pt ON p.id = pt.project_id
             LEFT JOIN 
                 project_work_items pwi ON p.id = pwi.project_id
             WHERE 
                 p.user_id = ? AND p.is_archived = TRUE
-            -- Kelompokkan hasil berdasarkan ID proyek karena kita menggunakan fungsi agregat COUNT()
             GROUP BY
                 p.id
             ORDER BY 
@@ -294,10 +270,8 @@ exports.getArchivedUserProjects = async (req, res) => {
         const formattedProjects = projects.map(p => ({
             ...p,
             is_archived: Boolean(p.is_archived),
-            // Pastikan tipe data numerik sudah benar
             total_cost: parseFloat(p.total_cost || 0),
             work_items_count: parseInt(p.work_items_count || 0, 10),
-            // Mengubah ke camelCase agar konsisten (opsional tapi praktik yang baik)
             projectName: p.project_name,
             workItemsCount: parseInt(p.work_items_count || 0, 10),
             totalCost: parseFloat(p.total_cost || 0),
@@ -626,9 +600,9 @@ exports.updateWorkItemFromProject = async (req, res) => {
 exports.addManualCashFlowEntry = async (req, res) => {
     const { projectId } = req.params;
     const { userId } = req.query;
-    const { date, description, amount, category_id } = req.body;
+    const { date, description, amount } = req.body;
 
-    if (!userId || !projectId || !date || !description || amount === undefined || !category_id) {
+    if (!userId || !projectId || !date || !description || amount === undefined) {
         return res.status(400).json({ message: "All fields for cash flow entry are required."});
     }
     const parsedAmount = parseFloat(amount);
@@ -642,9 +616,9 @@ exports.addManualCashFlowEntry = async (req, res) => {
         const newCashFlowEntryId = uuidv4();
         await connection.query(
         `INSERT INTO project_transactions
-            (id, project_id, transaction_date, details, transaction_value, transaction_category_id)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-        [ newCashFlowEntryId, projectId, date, description.trim(), parsedAmount, category_id ]
+            (id, project_id, transaction_date, details, transaction_value)
+        VALUES (?, ?, ?, ?, ?)`,
+        [ newCashFlowEntryId, projectId, date, description.trim(), parsedAmount ]
         );
         let projectUpdateQuery;
 
@@ -674,9 +648,9 @@ exports.addManualCashFlowEntry = async (req, res) => {
 exports.updateManualCashFlowEntry = async (req, res) => {
     const { projectId, entryId } = req.params;
     const { userId } = req.query;
-    const { date, description, amount, category_id } = req.body;
+    const { date, description, amount } = req.body;
 
-    if (!userId || !projectId || !entryId || !date || !description || amount === undefined || !category_id) {
+    if (!userId || !projectId || !entryId || !date || !description || amount === undefined) {
          return res.status(400).json({ message: "All fields are required for update."});
     }
     const parsedNewAmount = parseFloat(amount);
@@ -703,9 +677,9 @@ exports.updateManualCashFlowEntry = async (req, res) => {
 
         const [updateResult] = await connection.query(
         `UPDATE project_transactions
-        SET transaction_date = ?, details = ?, transaction_value = ?, transaction_category_id = ?, updated_at = NOW()
+        SET transaction_date = ?, details = ?, transaction_value = ?, updated_at = NOW()
         WHERE id = ? AND project_id = ?`,            
-        [date, description.trim(), parsedNewAmount, category_id, entryId, projectId]
+        [date, description.trim(), parsedNewAmount, entryId, projectId]
         );
         if (updateResult.affectedRows === 0) {
             await connection.rollback();

@@ -7,10 +7,10 @@ const NoDataDisplay = ({ onNew }) => (
     <div className="text-center py-16 px-6 border-2 border-dashed border-industrial-gray-light rounded-lg">
         <ClipboardList size={48} className="mx-auto text-industrial-gray" />
         <h3 className="mt-4 text-xl font-semibold text-industrial-dark">Belum Ada Definisi Pekerjaan</h3>
-        <p className="mt-2 text-industrial-gray-dark">Buat definisi pekerjaan untuk digunakan dalam proyek Anda.</p>
+        <p className="mt-2 text-industrial-gray-dark">Buat komponen pekerjaan untuk digunakan dalam proyek Anda.</p>
         <div className="mt-6">
             <button onClick={() => onNew(null)} className="flex items-center mx-auto px-4 py-2 bg-industrial-accent text-white font-semibold rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors">
-                <FilePlus size={18} className="mr-2"/> Buat Definisi Baru
+                <FilePlus size={18} className="mr-2"/> Buat Pekerjaan Baru
             </button>
         </div>
     </div>
@@ -111,9 +111,11 @@ const WorkItemDefinitionsView = ({
         const currentSelectedSchemaDetails = CALCULATION_SCHEMAS[currentSchemaKey];
 
         return (
-            <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg animate-fadeIn max-w-4xl mx-auto">
+            <div className="p-6">
+
+            <div className="p-6 bg-white border border-industrial-gray-light rounded-lg shadow-lg animate-fadeIn flex-col gap-6 mx-auto">
                 <h2 className="text-2xl font-bold text-industrial-accent mb-6 pb-4 border-b border-industrial-gray-light">
-                    {selectedTemplateKeyForEditing ? 'Edit Definisi Pekerjaan' : 'Buat Definisi Pekerjaan Baru'}
+                    {selectedTemplateKeyForEditing ? 'Edit Definisi Pekerjaan' : 'Buat Pekerjaan Baru'}
                 </h2>
                 
                 <div className="space-y-6">
@@ -168,6 +170,7 @@ const WorkItemDefinitionsView = ({
                     </div>
                 </div>
                 <FormActions onCancel={() => { setShowTemplateForm(false); setEditingTemplateData(null); setSelectedTemplateKeyForEditing(null); }} onSave={handleSaveWorkItemTemplate} isSaving={isSavingDefinition}/>
+            </div>
             </div>
         );
     }
