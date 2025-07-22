@@ -9,17 +9,17 @@ const Sidebar = ({ userRole, handleLogout }) => {
         admin: [
             { path: '/', label: 'Dashboard', icon: Home },
             { path: '/projects', label: 'Proyek', icon: Briefcase },
-            { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign },
-            { path: '/definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
+            { path: '/material-prices', label: 'Daftar Harga Satuan', icon: DollarSign },
+            { path: '/work-item-definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings },
             { path: '/settings/work-item-categories', label: 'Kelola Kategori Pekerjaan', icon: Settings },
             { path: '/calculation-simulator', label: 'Simulasi Kalkulasi', icon: Calculator },
             { path: '/archived', label: 'Arsip', icon: Archive },
         ],
-        staff_operasional: [
+        'staff operasional': [
             { path: '/', label: 'Dashboard', icon: Home },
-            { path: '/materials', label: 'Daftar Harga Satuan', icon: DollarSign },
-            { path: '/definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
+            { path: '/material-prices', label: 'Daftar Harga Satuan', icon: DollarSign },
+            { path: '/work-item-definitions', label: 'Daftar Pekerjaan', icon: ClipboardList },
             { path: '/settings/units', label: 'Kelola Unit', icon: Settings },
             { path: '/settings/work-item-categories', label: 'Kelola Kategori Pekerjaan', icon: Settings },
             { path: '/calculation-simulator', label: 'Simulasi Kalkulasi', icon: Calculator },
@@ -28,7 +28,7 @@ const Sidebar = ({ userRole, handleLogout }) => {
 
     const roleDisplayNames = {
         admin: 'Direktur',
-        staff_operasional: 'Staff Operasional',
+        'staff operasional': 'Staff Operasional',
     };
 
     const getNavItems = () => navItems[userRole] || [];

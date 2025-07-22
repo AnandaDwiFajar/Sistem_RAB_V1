@@ -22,6 +22,7 @@ import ProjectFormModal from './components/modals/ProjectFormModal';
 import PriceFormModal from './components/modals/PriceFormModal';
 import CalculationSimulatorView from './views/CalculationSimulatorView';
 import WelcomeDashboard from './views/WelcomeDashboard';
+import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute
 
 // Komponen Layout untuk Halaman yang Membutuhkan Sidebar
 const AppLayout = ({ projectsManager, materialPricesManager, definitionsManager, userData, handleLogout, userRole }) => (
@@ -35,15 +36,15 @@ const AppLayout = ({ projectsManager, materialPricesManager, definitionsManager,
 );
 
 function App() {
-    const { userId, userRole, isAuthLoading, logout } = useAuth();
+    const { userId, userRole, isLoading, logout } = useAuth(); // Corrected: isAuthLoading -> isLoading
     const { showToast } = useUI();
     const navigate = useNavigate();
 
     // Inisialisasi semua hook tetap di sini agar state terpusat
-    const userData = useUserData();
-    const materialPricesManager = useMaterialPrices(userData.userUnits, userData.setUserUnits);
-    const definitionsManager = useWorkItemDefinitions(materialPricesManager.materialPrices, userData.userWorkItemCategories, userData.userUnits);
-    const projectsManager = useProjects(definitionsManager.userWorkItemTemplates, materialPricesManager.materialPrices, userData.userUnits, userData.userWorkItemCategories);
+    const userDataHook = useUserData();
+    const materialPricesManager = useMaterialPrices(userDataHook.userUnits, userDataHook.setUserUnits);
+    const definitionsManager = useWorkItemDefinitions(materialPricesManager.materialPrices, userDataHook.userWorkItemCategories, userDataHook.userUnits);
+    const projectsManager = useProjects(definitionsManager.userWorkItemTemplates, materialPricesManager.materialPrices, userDataHook.userUnits, userDataHook.userWorkItemCategories);
     
     // State untuk Calculation Simulator
     const [simulatedWorkItem, setSimulatedWorkItem] = useState(null);
@@ -120,13 +121,16 @@ function App() {
     }, [userId, projectsManager.fetchActiveProjects, projectsManager.clearProjects]);
 
 
-    if (isAuthLoading) {
+    if (isLoading) { // Corrected: isAuthLoading -> isLoading
         return <div className="flex items-center justify-center h-screen">Loading...</div>;
     }
 
     return (
         <>
             <Routes>
+                {/* Rute untuk pengguna yang belum login */}
+                <Route path="/login" element={!userId ? <LoginPage /> : <Navigate to="/" />} />
+
                 {/* Rute untuk pengguna yang sudah login */}
                 <Route 
                     path="/" 
@@ -138,7 +142,7 @@ function App() {
                             projectsManager={projectsManager}
                             materialPricesManager={materialPricesManager}
                             definitionsManager={definitionsManager}
-                            userData={userData}
+                            userData={userDataHook}
                         /> : 
                         <Navigate to="/login" />
                     }
@@ -146,14 +150,21 @@ function App() {
                     {/* Halaman default setelah login adalah WelcomeDashboard */}
                     <Route index element={<WelcomeDashboard />} />
 
-                    <Route path="projects" element={<ProjectsView projectsManager={projectsManager} />} />
-
+                    {/* Rute yang hanya bisa diakses oleh Admin */}
+                    <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                        <Route path="projects" element={<ProjectsView projectsManager={projectsManager} />} />
+                        <Route path="archived" element={<ArchivedProjectsView projectsManager={projectsManager} />} />
+                        <Route path="project/:projectId" element={<ProjectDetailsView />} />
+                        <Route path="report/:projectId" element={<ProjectReport />} />
+                    </Route>
+                    
+                    {/* Rute yang bisa diakses oleh semua role yang login */}
                     <Route 
                         path="calculation-simulator" 
                         element={
                             <CalculationSimulatorView
                                 definitionsManager={definitionsManager}
-                                userWorkItemCategories={userData.userWorkItemCategories}
+                                userWorkItemCategories={userDataHook.userWorkItemCategories}
                                 workItemFormData={workItemFormData}
                                 handleWorkItemFormChange={handleWorkItemFormChange}
                                 calculatedWorkItemPreview={simulatedWorkItem}
@@ -163,7 +174,7 @@ function App() {
                         } 
                     />
                     <Route
-                        path="materials"
+                        path="material-prices"
                         element={
                             <MaterialPricesView
                                 materialPricesManager={materialPricesManager}
@@ -177,27 +188,19 @@ function App() {
                             />
                         }
                     />
-                    <Route path="definitions" element={
+                    <Route path="work-item-definitions" element={
                         <WorkItemDefinitionsView 
                             {...definitionsManager}
-                            userWorkItemCategories={userData.userWorkItemCategories}
+                            userWorkItemCategories={userDataHook.userWorkItemCategories}
                             materialPrices={materialPricesManager.materialPrices}
                         />} 
                     />
-                    <Route path="archived" element={<ArchivedProjectsView projectsManager={projectsManager} />} />
-                    <Route path="settings/units" element={<ManageUnitsView units={userData.userUnits} setUnits={userData.setUserUnits} />} />
-                    <Route path="settings/work-item-categories" element={<ManageWorkItemCategoriesView categories={userData.userWorkItemCategories} setCategories={userData.setUserWorkItemCategories} />} />
-                    
-                    {/* Rute dengan parameter */}
-                    <Route path="project/:projectId" element={<ProjectDetailsView />} />
-                    <Route path="report/:projectId" element={<ProjectReport />} />
+                    <Route path="settings/units" element={<ManageUnitsView units={userDataHook.userUnits} setUnits={userDataHook.setUserUnits} />} />
+                    <Route path="settings/work-item-categories" element={<ManageWorkItemCategoriesView categories={userDataHook.userWorkItemCategories} setCategories={userDataHook.setUserCategories} />} />
 
                     {/* Rute fallback jika halaman tidak ditemukan setelah login */}
                     <Route path="*" element={<Navigate to="/" />} />
                 </Route>
-
-                {/* Rute untuk pengguna yang belum login */}
-                <Route path="/login" element={!userId ? <LoginPage /> : <Navigate to="/" />} />
             </Routes>
 
             {/* Modal bisa tetap di sini karena mereka dipicu oleh state, bukan URL */}

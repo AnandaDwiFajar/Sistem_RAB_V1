@@ -2,12 +2,28 @@ import React from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { Briefcase, PlusCircle, Calculator, ArrowRight, ClipboardList, DollarSign, Loader2 } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
+import { useAuth } from '../contexts/AuthContext';
+import StaffDashboard from './StaffDashboard'; // Import the new dashboard
+import StatCard from '../components/StatCard'; // Import the new StatCard component
 
 const WelcomeDashboard = () => {
-    // Get all managers from context for a comprehensive dashboard
-    const { projectsManager, definitionsManager, materialPricesManager, userData } = useOutletContext();
+    const { userData } = useAuth(); // Get user data to check the role
 
-    // Destructure needed state and functions from each manager
+    // Get all managers from context for a comprehensive dashboard
+    const { projectsManager, definitionsManager, materialPricesManager } = useOutletContext();
+
+    // If the user is Staff Operasional, render the specific dashboard
+    if (userData?.role === 'Staff Operasional') {
+        return (
+            <StaffDashboard 
+                definitionsManager={definitionsManager}
+                materialPricesManager={materialPricesManager}
+                userData={userData}
+            />
+        );
+    }
+    
+    // Destructure needed state and functions from each manager for the Admin dashboard
     const { projects, isLoading: isLoadingProjects, handleStartEditProject } = projectsManager;
     const { userWorkItemTemplates, isLoading: isLoadingDefinitions } = definitionsManager;
     const { materialPrices, isLoading: isLoadingPrices } = materialPricesManager;
@@ -22,21 +38,6 @@ const WelcomeDashboard = () => {
             handleStartEditProject(null); // Passing null indicates a new project
         }
     };
-    
-    // Reusable component for statistics cards
-    const StatCard = ({ icon, label, value, color, isLoading }) => (
-        <div className={`p-6 rounded-lg shadow-md flex items-center space-x-4 bg-white border-l-4 ${color}`}>
-            {icon}
-            <div>
-                <p className="text-sm font-medium text-industrial-gray-dark">{label}</p>
-                {isLoading ? (
-                    <Loader2 className="animate-spin mt-1 text-industrial-dark" size={24} />
-                ) : (
-                    <p className="text-2xl font-bold text-industrial-dark">{value}</p>
-                )}
-            </div>
-        </div>
-    );
 
     // Reusable component for quick action buttons
     const QuickActionButton = ({ icon, label, onClick, to }) => {

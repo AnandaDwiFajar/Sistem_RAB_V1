@@ -46,10 +46,10 @@ export function AuthProvider({ children }) {
         setUserId(user.uid);
         try {
           const profileData = await apiService.fetchUserProfile(user.uid);
-          setUserRole(profileData.role || 'staff_operasional');
+          setUserRole(profileData.role || 'staff operasional');
         } catch (error) {
           console.error("Failed to fetch user role:", error);
-          setUserRole('staff_operasional');
+          setUserRole('staff operasional');
         }
       } else {
         setUserId(null);

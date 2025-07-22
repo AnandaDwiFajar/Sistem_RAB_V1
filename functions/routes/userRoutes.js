@@ -22,14 +22,20 @@ const getUserProfile = async (req, res) => {
             return res.status(404).json({ message: "Profil pengguna tidak ditemukan di database aplikasi." });
         }
         
-        // PENTING: BARIS INILAH YANG KEMUNGKINAN BESAR HILANG SEBELUMNYA
-        // Baris ini mengambil data dari hasil query dan mendefinisikan variabel 'userProfile'.
         const userProfile = rows[0];
         
-        // Log ini sekarang seharusnya bisa berjalan tanpa error
+        console.log('[BACKEND] Profil pengguna ditemukan:', userProfile);
+
+        if (userProfile.role) {
+            console.log(`[BACKEND] Peran sebelum normalisasi: '${userProfile.role}'`);
+            userProfile.role = userProfile.role.toLowerCase().replace('_', ' ');
+            console.log(`[BACKEND] Peran setelah normalisasi: '${userProfile.role}'`);
+        } else {
+            console.log('[BACKEND] Pengguna tidak memiliki peran yang ditentukan.');
+        }
+        
         console.log('DATA PROFIL YANG AKAN DIKIRIM KE FRONTEND:', userProfile);
         
-        // Kirim 'userProfile' yang sudah didefinisikan sebagai respons
         res.status(200).json(userProfile);
 
     } catch (error) {
