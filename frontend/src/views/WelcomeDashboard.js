@@ -1,19 +1,19 @@
 import React from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { Briefcase, PlusCircle, Calculator, ArrowRight, ClipboardList, DollarSign, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatDate } from '../utils/helpers';
 
 const WelcomeDashboard = () => {
     // Get all managers from context for a comprehensive dashboard
     const { projectsManager, definitionsManager, materialPricesManager, userData } = useOutletContext();
 
     // Destructure needed state and functions from each manager
-    const { activeProjects, isLoading: isLoadingProjects, handleStartEditProject } = projectsManager;
+    const { projects, isLoading: isLoadingProjects, handleStartEditProject } = projectsManager;
     const { userWorkItemTemplates, isLoading: isLoadingDefinitions } = definitionsManager;
     const { materialPrices, isLoading: isLoadingPrices } = materialPricesManager;
 
-    // Sort and slice recent projects, ensuring activeProjects is treated as an array
-    const recentProjects = [...(activeProjects || [])]
+    // Sort and slice recent projects, ensuring projects is treated as an array
+    const recentProjects = [...(projects || [])]
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 5);
 
@@ -75,7 +75,7 @@ const WelcomeDashboard = () => {
                                         <div>
                                             <p className="font-semibold text-industrial-dark">{project.project_name}</p>
                                             <p className="text-sm text-industrial-gray-dark">
-                                                Dibuat pada: {format(new Date(project.created_at), 'dd MMMM yyyy')}
+                                                Dibuat pada: {formatDate(project.created_at)}
                                             </p>
                                         </div>
                                         <Link to={`/project/${project.id}`} className="flex items-center text-sm font-medium text-industrial-accent hover:underline">
@@ -105,7 +105,7 @@ const WelcomeDashboard = () => {
                             <StatCard 
                                 icon={<Briefcase size={32} className="text-blue-500" />} 
                                 label="Proyek Aktif" 
-                                value={(activeProjects || []).length} 
+                                value={(projects || []).length} 
                                 color="border-blue-500"
                                 isLoading={isLoadingProjects}
                             />
