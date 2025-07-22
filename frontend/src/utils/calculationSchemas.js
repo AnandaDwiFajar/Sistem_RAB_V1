@@ -6,18 +6,6 @@
  */
 
 export const CALCULATION_SCHEMAS = {
-  // =================================================================================
-  // Kategori: Dasar
-  // =================================================================================
-  SIMPLE_PRIMARY_INPUT: {
-      id: 'SIMPLE_PRIMARY_INPUT',
-      group: 'Dasar',
-      name: 'Input Sederhana (berdasarkan kuantitas)',
-      description: 'Kalkulasi paling dasar. Biaya dihitung langsung dari kuantitas utama (misalnya, per m², m³, atau unit lainnya).',
-      isSimple: true,
-      inputs: [],
-      output: { label: 'Kuantitas Primer', unitSymbol: 'unit' },
-  },
 
   // =================================================================================
   // Kategori: Pekerjaan Persiapan

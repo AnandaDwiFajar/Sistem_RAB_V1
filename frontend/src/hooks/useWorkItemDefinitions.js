@@ -272,20 +272,29 @@ export const useWorkItemDefinitions = (materialPrices, userWorkItemCategories, u
     
                     if (Array.isArray(suggestedComponentsRaw)) {
                         const newComponentsFromAI = suggestedComponentsRaw.map(sugComp => {
-                            const matchingPriceItem = materialPrices.find(p =>
-                                p.name.toLowerCase() === (sugComp.componentName || "").toLowerCase() &&
-                                (p.unit && sugComp.unit && p.unit.toLowerCase() === sugComp.unit.toLowerCase())
-                            );
+                            const matchingPriceItem = materialPrices.find(p => {
+                                const dbName = (p.name || '').trim().toLowerCase();
+                                const aiName = (sugComp.componentName || '').trim().toLowerCase();
+                                if (dbName !== aiName) {
+                                    return false;
+                                }
+                                const dbUnit = (p.unit || '').trim().toLowerCase();
+                                const aiUnit = (sugComp.unit || '').trim().toLowerCase();
+                                if (dbUnit && aiUnit && dbUnit !== aiUnit) {
+                                    return false;
+                                }
+                                return true;
+                            });
                             return {
                                 tempId: generateId(),
                                 display_name: sugComp.componentName || "Unnamed Component",
                                 material_price_id: matchingPriceItem ? matchingPriceItem.id : '',
                                 coefficient: (typeof sugComp.coefficient === 'number' && !isNaN(sugComp.coefficient)) ? sugComp.coefficient : 0,
-                                component_type: sugComp.type || 'material',
+                                component_type: sugComp.type === 'labor' ? 'labor' : 'material',
                                 selectedResourceId: matchingPriceItem ? matchingPriceItem.id : ''
                             };
                         });
-    
+        
                         setEditingTemplateData(prev => ({
                             ...prev,
                             components: [

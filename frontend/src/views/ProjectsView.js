@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Briefcase, PlusCircle, Archive, XCircle, Edit3, Loader2 } from 'lucide-react';
+import { Briefcase, PlusCircle, Archive, XCircle, Edit3, Loader2, ArrowRightCircle } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 
 const ProjectsView = () => {
@@ -47,35 +47,39 @@ const ProjectsView = () => {
     );
 
     const ProjectCard = ({ project }) => (
+        // Menghapus onClick dan cursor-pointer dari div utama kartu
         <div
-            onClick={() => handleProjectClick(project.id)}
-            className="bg-white rounded-lg shadow-md border transition-all duration-200 cursor-pointer hover:shadow-xl hover:-translate-y-1 border-industrial-gray-light flex flex-col justify-between"
+            className="bg-white rounded-lg shadow-md border transition-all duration-200 hover:shadow-xl hover:-translate-y-1 border-industrial-gray-light flex flex-col justify-between"
         >
             <div className="p-5">
                 <h3 className="font-bold text-industrial-dark text-lg mb-2 truncate" title={project.project_name}>
                     {project.project_name}
                 </h3>
-                <p className="text-sm text-industrial-gray-dark mb-4">{project.customer_name || 'N/A'}</p>
+                <p className="text-sm text-industrial-gray-dark mb-4">Klien: {project.customer_name || 'N/A'}</p>
                 <div className="text-xs text-industrial-gray">
                     <span>Dibuat: {formatDate(project.created_at)}</span>
                 </div>
             </div>
-            {/* Hanya Admin yang bisa edit/hapus/arsip */}
-                <div className="border-t border-industrial-gray-light bg-gray-50/50 px-5 py-2 flex justify-end space-x-2 text-xs">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); handleStartEditProject(project.id); }}
-                        className="flex items-center p-1.5 text-industrial-gray-dark hover:text-industrial-accent transition-colors" title="Edit Proyek">
-                        <Edit3 size={14} className="mr-1"/> Edit
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); handleArchiveProject(project.id); }}
-                        className="flex items-center p-1.5 text-yellow-500 hover:text-yellow-600 transition-colors" title="Arsipkan Proyek">
-                        <Archive size={14} className="mr-1"/> Arsipkan
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id); }}
-                        className="flex items-center p-1.5 text-red-500 hover:text-red-700 transition-colors" title="Hapus Proyek">
-                        <XCircle size={14} className="mr-1"/> Hapus
-                    </button>
-                </div>
+            <div className="border-t border-industrial-gray-light bg-gray-50/50 px-5 py-2 flex justify-end space-x-2 text-xs">
+                <button
+                    onClick={(e) => { e.stopPropagation(); handleProjectClick(project.id); }}
+                    className="flex items-center p-1.5 text-industrial-accent hover:text-industrial-accent-dark transition-colors font-semibold" title="Lihat Detail Proyek">
+                    <ArrowRightCircle size={14} className="mr-1"/> Detail
+                </button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); handleStartEditProject(project.id); }}
+                    className="flex items-center p-1.5 text-industrial-gray-dark hover:text-industrial-accent transition-colors font-semibold" title="Edit Proyek">
+                    <Edit3 size={14} className="mr-1"/> Edit
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleArchiveProject(project.id); }}
+                    className="flex items-center p-1.5 text-yellow-500 hover:text-yellow-600 transition-colors font-semibold" title="Arsipkan Proyek">
+                    <Archive size={14} className="mr-1"/> Arsipkan
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id); }}
+                    className="flex items-center p-1.5 text-red-500 hover:text-red-700 transition-colors font-semibold" title="Hapus Proyek">
+                    <XCircle size={14} className="mr-1"/> Hapus
+                </button>
+            </div>
         </div>
     );
 
