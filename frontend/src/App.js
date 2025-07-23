@@ -22,31 +22,37 @@ import ProjectFormModal from './components/modals/ProjectFormModal';
 import PriceFormModal from './components/modals/PriceFormModal';
 import CalculationSimulatorView from './views/CalculationSimulatorView';
 import WelcomeDashboard from './views/WelcomeDashboard';
-import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute
+import ProtectedRoute from './components/ProtectedRoute';
+import StaffDashboard from './views/StaffDashboard';
 
 // Komponen Layout untuk Halaman yang Membutuhkan Sidebar
-const AppLayout = ({ projectsManager, materialPricesManager, definitionsManager, userData, handleLogout, userRole }) => (
-    <div className="flex h-screen bg-industrial-background">
-        <Sidebar handleLogout={handleLogout} userRole={userRole} />
-        <main className="flex-1 p-6 overflow-auto">
-            {/* Outlet akan merender komponen anak sesuai URL */}
-            <Outlet context={{ projectsManager, materialPricesManager, definitionsManager, userData }} />
-        </main>
-    </div>
-);
+// TERIMA SEMUA MANAGER SEBAGAI PROPS
+const AppLayout = ({ handleLogout, outletContext }) => {
+    const { userRole } = useAuth();
+    return (
+        <div className="flex h-screen bg-industrial-background">
+            <Sidebar handleLogout={handleLogout} userRole={userRole} />
+            <main className="flex-1 p-6 overflow-auto">
+                {/* TERUSKAN CONTEXT KE OUTLET */}
+                <Outlet context={outletContext} />
+            </main>
+        </div>
+    );
+};
+
 
 function App() {
-    const { userId, userRole, isLoading, logout } = useAuth(); // Corrected: isAuthLoading -> isLoading
-    const { showToast } = useUI();
+    // Pindahkan hook useNavigate ke atas agar bisa digunakan di mana saja
     const navigate = useNavigate();
+    const { userId, userRole, isLoading, logout } = useAuth();
+    const { showToast } = useUI();
 
-    // Inisialisasi semua hook tetap di sini agar state terpusat
-    const userDataHook = useUserData();
-    const materialPricesManager = useMaterialPrices(userDataHook.userUnits, userDataHook.setUserUnits);
-    const definitionsManager = useWorkItemDefinitions(materialPricesManager.materialPrices, userDataHook.userWorkItemCategories, userDataHook.userUnits);
-    const projectsManager = useProjects(definitionsManager.userWorkItemTemplates, materialPricesManager.materialPrices, userDataHook.userUnits, userDataHook.userWorkItemCategories);
+    // Semua manager didefinisikan di sini
+    const userData = useUserData();
+    const materialPricesManager = useMaterialPrices(userData.userUnits, userData.setUserUnits);
+    const definitionsManager = useWorkItemDefinitions(materialPricesManager.materialPrices, userData.userWorkItemCategories, userData.userUnits);
+    const projectsManager = useProjects(definitionsManager.userWorkItemTemplates, materialPricesManager.materialPrices, userData.userUnits, userData.userWorkItemCategories);
     
-    // State untuk Calculation Simulator
     const [simulatedWorkItem, setSimulatedWorkItem] = useState(null);
     const [isCalculating, setIsCalculating] = useState(false);
     const [workItemFormData, setWorkItemFormData] = useState({
@@ -54,6 +60,14 @@ function App() {
         primaryInputValue: '',
         parameterValues: {}
     });
+
+    // Gabungkan semua manager ke dalam satu objek untuk diteruskan sebagai context
+    const outletContextValue = {
+        projectsManager,
+        definitionsManager,
+        materialPricesManager,
+        userData // Anda mungkin juga butuh ini di beberapa view
+    };
 
     const handleWorkItemFormChange = useCallback((e, paramKey) => {
         const { name, value, type } = e.target;
@@ -112,59 +126,55 @@ function App() {
         }
     };
 
+    // Menggunakan useCallback untuk fetchActiveProjects dan clearProjects
+    const fetchProjects = projectsManager.fetchActiveProjects;
+    const clearProjects = projectsManager.clearProjects;
+
     useEffect(() => {
         if (userId) {
-            projectsManager.fetchActiveProjects();
+            fetchProjects();
         } else {
-            projectsManager.clearProjects();
+            clearProjects();
         }
-    }, [userId, projectsManager.fetchActiveProjects, projectsManager.clearProjects]);
+    }, [userId, fetchProjects, clearProjects]);
 
 
-    if (isLoading) { // Corrected: isAuthLoading -> isLoading
+    if (isLoading) {
         return <div className="flex items-center justify-center h-screen">Loading...</div>;
     }
 
     return (
         <>
             <Routes>
-                {/* Rute untuk pengguna yang belum login */}
                 <Route path="/login" element={!userId ? <LoginPage /> : <Navigate to="/" />} />
-
-                {/* Rute untuk pengguna yang sudah login */}
+                {/* KIRIMKAN CONTEXT KE APPLAYOUT */}
                 <Route 
                     path="/" 
                     element={
-                        userId ? 
-                        <AppLayout 
-                            handleLogout={handleLogout}
-                            userRole={userRole}
-                            projectsManager={projectsManager}
-                            materialPricesManager={materialPricesManager}
-                            definitionsManager={definitionsManager}
-                            userData={userDataHook}
-                        /> : 
-                        <Navigate to="/login" />
+                        userId ? <AppLayout handleLogout={handleLogout} outletContext={outletContextValue} /> : <Navigate to="/login" />
                     }
                 >
-                    {/* Halaman default setelah login adalah WelcomeDashboard */}
-                    <Route index element={<WelcomeDashboard />} />
-
-                    {/* Rute yang hanya bisa diakses oleh Admin */}
+                    <Route index element={
+                        userRole === 'admin' ? <WelcomeDashboard /> : <StaffDashboard 
+                                definitionsManager={definitionsManager} 
+                                materialPricesManager={materialPricesManager} 
+                                userData={userData} 
+                              />
+                    } />
                     <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                        {/* Semua route di sini sekarang menerima manager yang benar */}
                         <Route path="projects" element={<ProjectsView projectsManager={projectsManager} />} />
                         <Route path="archived" element={<ArchivedProjectsView projectsManager={projectsManager} />} />
                         <Route path="project/:projectId" element={<ProjectDetailsView />} />
                         <Route path="report/:projectId" element={<ProjectReport />} />
                     </Route>
                     
-                    {/* Rute yang bisa diakses oleh semua role yang login */}
                     <Route 
                         path="calculation-simulator" 
                         element={
                             <CalculationSimulatorView
                                 definitionsManager={definitionsManager}
-                                userWorkItemCategories={userDataHook.userWorkItemCategories}
+                                userWorkItemCategories={userData.userWorkItemCategories}
                                 workItemFormData={workItemFormData}
                                 handleWorkItemFormChange={handleWorkItemFormChange}
                                 calculatedWorkItemPreview={simulatedWorkItem}
@@ -175,35 +185,23 @@ function App() {
                     />
                     <Route
                         path="material-prices"
-                        element={
-                            <MaterialPricesView
-                                materialPricesManager={materialPricesManager}
-                                onAddNew={() => {
-                                    materialPricesManager.setEditingPrice(null);
-                                    const firstUnitId = materialPricesManager.userUnits.length > 0 ? materialPricesManager.userUnits[0].id : '';
-                                    materialPricesManager.setPriceFormData({ name: '', unitId: firstUnitId, customUnitName: '', price: '' });
-                                    materialPricesManager.setShowPriceForm(true);
-                                }}
-                                onEdit={materialPricesManager.handleEditPrice}
-                            />
-                        }
+                        element={<MaterialPricesView materialPricesManager={materialPricesManager} />}
                     />
                     <Route path="work-item-definitions" element={
                         <WorkItemDefinitionsView 
                             {...definitionsManager}
-                            userWorkItemCategories={userDataHook.userWorkItemCategories}
+                            userWorkItemCategories={userData.userWorkItemCategories}
                             materialPrices={materialPricesManager.materialPrices}
                         />} 
                     />
-                    <Route path="settings/units" element={<ManageUnitsView units={userDataHook.userUnits} setUnits={userDataHook.setUserUnits} />} />
-                    <Route path="settings/work-item-categories" element={<ManageWorkItemCategoriesView categories={userDataHook.userWorkItemCategories} setCategories={userDataHook.setUserCategories} />} />
+                    <Route path="settings/units" element={<ManageUnitsView units={userData.userUnits} setUnits={userData.setUserUnits} />} />
+                    <Route path="settings/work-item-categories" element={<ManageWorkItemCategoriesView categories={userData.userWorkItemCategories} setCategories={userData.setUserCategories} />} />
 
-                    {/* Rute fallback jika halaman tidak ditemukan setelah login */}
                     <Route path="*" element={<Navigate to="/" />} />
                 </Route>
             </Routes>
 
-            {/* Modal bisa tetap di sini karena mereka dipicu oleh state, bukan URL */}
+            {/* Modals tetap di sini */}
             <ProjectFormModal showModal={projectsManager.showProjectForm} handleClose={projectsManager.handleCancelEdit} formData={projectsManager.projectFormData} handleFormChange={projectsManager.handleProjectFormChange} handleSubmit={projectsManager.handleSaveOrUpdateProject} isSaving={projectsManager.isSavingProject} editingProjectId={projectsManager.editingProjectId} dateError={projectsManager.dateError} />
             <PriceFormModal
                 isOpen={materialPricesManager.showPriceForm}

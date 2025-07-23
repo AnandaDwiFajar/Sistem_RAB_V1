@@ -6,7 +6,7 @@ const Sidebar = ({ userRole, handleLogout }) => {
     const location = useLocation();
 
     const navItems = {
-        admin: [
+        'admin': [
             { path: '/', label: 'Dashboard', icon: Home },
             { path: '/projects', label: 'Proyek', icon: Briefcase },
             { path: '/material-prices', label: 'Daftar Harga Satuan', icon: DollarSign },
@@ -27,7 +27,7 @@ const Sidebar = ({ userRole, handleLogout }) => {
     };
 
     const roleDisplayNames = {
-        admin: 'Direktur',
+        'admin': 'Direktur',
         'staff operasional': 'Staff Operasional',
     };
 
