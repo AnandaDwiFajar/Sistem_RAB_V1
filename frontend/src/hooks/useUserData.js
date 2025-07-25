@@ -27,13 +27,13 @@ export const useUserData = () => {
         }
 
         apiService.fetchWorkItemCategories(userId)
-            .then(data => setUserWorkItemCategories(data || []))
+            .then(data => setUserWorkItemCategories(data || [])) // Hapus sort dari sini
             .catch(err => {
                 showToast('error', 'Gagal memuat kategori item pekerjaan.');
                 console.error(err);
             });
 
-        apiService.fetchUserUnits(userId)
+        apiService.fetchUserUnits(userId) 
             .then(data => setUserUnits(data || []))
             .catch(err => {
                 showToast('error', 'Gagal memuat satuan.');
@@ -66,7 +66,7 @@ export const useUserData = () => {
         if (!newCategoryName.trim()) { showToast('error', 'Nama kategori tidak boleh kosong.'); return; }
         try {
             const addedCategory = await apiService.addWorkItemCategoryApi(userId, newCategoryName.trim());
-            setUserWorkItemCategories(prev => [...prev, addedCategory].sort((a, b) => a.category_name.localeCompare(b.category_name)));
+            setUserWorkItemCategories(prev => [...prev, addedCategory]); // Hapus sort dari sini
             setNewCategoryName('');
             showToast('success', `Kategori "${addedCategory.category_name}" ditambahkan.`);
         } catch (error) {
@@ -81,7 +81,8 @@ export const useUserData = () => {
             setUserUnits(prev => [...prev, addedUnit].sort((a, b) => a.unit_name.localeCompare(b.unit_name)));
             setNewUnitName('');
             showToast('success', `Satuan "${addedUnit.unit_name}" ditambahkan.`);
-        } catch (error) {
+        } catch (error)
+            {
             showToast('error', `Gagal menambahkan satuan: ${error.message}`);
         }
     }, [newUnitName, userId, showToast]);
@@ -117,7 +118,7 @@ export const useUserData = () => {
             setUserWorkItemCategories(prevCategories =>
                 prevCategories.map(cat =>
                     cat.id === categoryId ? updatedCategory : cat
-                ).sort((a, b) => (a.category_name || '').localeCompare(b.category_name || ''))
+                ) // Hapus sort dari sini
             );
             showToast('success', `Kategori "${updatedCategory.category_name}" berhasil diperbarui.`);
         } catch (error) {

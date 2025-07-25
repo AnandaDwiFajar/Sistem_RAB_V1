@@ -69,49 +69,67 @@ const terbilang = (n) => {
 const ProjectReport = React.forwardRef(({ project, allCategories = [] }, ref) => {
     if (!project) return null;
 
-    // Kalkulasi dan pengelompokan (Tidak ada perubahan)
-    const groupedWorkItems = (project.workItems || []).reduce((acc, item) => {
-        const categoryObject = allCategories.find(cat => cat.id === item.category_id);
-        const category = categoryObject ? categoryObject.category_name : "Pekerjaan Lain-lain";
-        if (!acc[category]) {
-            acc[category] = { items: [], subtotal: 0 };
+    // --- ✅ PERBAIKAN LOGIKA PENGURUTAN ---
+
+    // 1. Kelompokkan semua item pekerjaan berdasarkan category_id untuk pencarian cepat.
+    const workItemsByCategoryId = (project.workItems || []).reduce((acc, item) => {
+        const categoryId = item.category_id || 'unassigned';
+        if (!acc[categoryId]) {
+            acc[categoryId] = [];
         }
-        acc[category].items.push(item);
-        acc[category].subtotal += parseFloat(item.total_item_cost_snapshot || 0);
+        acc[categoryId].push(item);
         return acc;
     }, {});
 
-    const jumlahTotalPekerjaan = Object.values(groupedWorkItems).reduce((sum, group) => sum + group.subtotal, 0);
+    // 2. Buat data laporan dengan mengiterasi `allCategories` yang SUDAH TERURUT dari backend.
+    const sortedGroupedWorkItems = allCategories
+        .map(category => {
+            const items = workItemsByCategoryId[category.id] || [];
+            if (items.length === 0) {
+                return null; // Jangan tampilkan kategori jika tidak ada item pekerjaan di dalamnya.
+            }
+            const subtotal = items.reduce((sum, item) => sum + parseFloat(item.total_item_cost_snapshot || 0), 0);
+            
+            // Hapus item yang sudah diproses dari kelompok utama agar tidak duplikat.
+            delete workItemsByCategoryId[category.id];
+
+            return {
+                categoryName: category.category_name,
+                items: items,
+                subtotal: subtotal,
+            };
+        })
+        .filter(Boolean); // Hapus entri null dari array.
+
+    // 3. Tambahkan item yang tidak memiliki kategori (jika ada) ke bagian akhir.
+    const unassignedItems = workItemsByCategoryId['unassigned'];
+    if (unassignedItems && unassignedItems.length > 0) {
+        const subtotal = unassignedItems.reduce((sum, item) => sum + parseFloat(item.total_item_cost_snapshot || 0), 0);
+        sortedGroupedWorkItems.push({
+            categoryName: 'Pekerjaan Lain-lain',
+            items: unassignedItems,
+            subtotal: subtotal,
+        });
+    }
+
+    // Kalkulasi Total
+    const jumlahTotalPekerjaan = sortedGroupedWorkItems.reduce((sum, group) => sum + group.subtotal, 0);
     const biayaLainLainEntries = (project.cashFlowEntries || []).filter(entry => !entry.is_auto_generated);
     const totalBiayaLainLain = biayaLainLainEntries.reduce((sum, entry) => sum + parseFloat(entry.amount || 0), 0);
     const jumlahTotalAkhir = jumlahTotalPekerjaan + totalBiayaLainLain;
     const dibulatkan = Math.round(jumlahTotalAkhir);
     const terbilangStr = terbilang(dibulatkan) + " rupiah";
     const terbilangFormatted = terbilangStr.charAt(0).toUpperCase() + terbilangStr.slice(1);
-
     const projectYear = project.start_date ? new Date(project.start_date).getFullYear() : new Date().getFullYear();
 
-    // --- Style untuk print ---
+    // Style untuk print
     const printStyles = `
         @media print {
-            html, body {
-                height: initial !important;
-                overflow: initial !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
+            html, body { height: initial !important; overflow: initial !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             thead { display: table-header-group; }
             tfoot { display: table-footer-group; }
-            
-            /* ✅ PERBAIKAN UTAMA: Mencegah pemisahan halaman di dalam grup kategori (tbody) */
-            tbody {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-            tr { 
-                break-inside: avoid; 
-                page-break-inside: avoid;
-            }
+            tbody { break-inside: avoid; page-break-inside: avoid; }
+            tr { break-inside: avoid; page-break-inside: avoid; }
         }
     `;
 
@@ -119,7 +137,7 @@ const ProjectReport = React.forwardRef(({ project, allCategories = [] }, ref) =>
         <>
             <style>{printStyles}</style>
             <div ref={ref} className="p-8 bg-white text-black font-sans text-xs printable-area">
-                {/* Header (Tidak ada perubahan) */}
+                {/* Header */}
                 <h1 className="text-base font-bold text-center uppercase mb-2">RENCANA ANGGARAN BIAYA (RAB)</h1>
                 <div className="mb-6 w-full max-w-lg mx-auto border-b-2 border-black pb-2"></div>
                 <div className="mb-6 w-full max-w-lg">
@@ -144,19 +162,19 @@ const ProjectReport = React.forwardRef(({ project, allCategories = [] }, ref) =>
                             <th className="p-2 border border-black w-32 text-center">JUMLAH HARGA (Rp)</th>
                         </tr>
                     </thead>
-
-                    {/* ✅ PERBAIKAN: Loop untuk membuat <tbody> per kategori */}
-                    {Object.entries(groupedWorkItems).map(([category, data], index) => (
-                        <tbody key={category}>
+                    
+                    {/* Loop menggunakan data yang sudah diurutkan dengan benar */}
+                    {sortedGroupedWorkItems.map(({ categoryName, items, subtotal }, index) => (
+                        <tbody key={categoryName}>
                             {/* Baris Header Kategori */}
                             <tr className="font-bold bg-gray-100">
                                 <td className="p-2 border border-black text-center">{toRoman(index + 1)}</td>
-                                <td className="p-2 border border-black uppercase" colSpan="4">{category}</td>
-                                <td className="p-2 border border-black text-right">{formatNumber(data.subtotal)}</td>
+                                <td className="p-2 border border-black uppercase" colSpan="4">{categoryName}</td>
+                                <td className="p-2 border border-black text-right">{formatNumber(subtotal)}</td>
                             </tr>
 
                             {/* Loop untuk Item Pekerjaan */}
-                            {data.items.map((item, subIndex) => {
+                            {items.map((item, subIndex) => {
                                 let outputDetails = {};
                                 try { outputDetails = JSON.parse(item.output_details_json || '{}'); } catch (e) { console.error("Gagal parse JSON", e); }
                                 const volume = parseFloat(item.calculation_value || 0);
@@ -192,11 +210,11 @@ const ProjectReport = React.forwardRef(({ project, allCategories = [] }, ref) =>
                         </tbody>
                     ))}
                     
-                    {/* Biaya Lain-lain juga dalam tbody sendiri */}
+                    {/* Biaya Lain-lain */}
                     {biayaLainLainEntries.length > 0 && (
                         <tbody>
                             <tr className="font-bold bg-gray-100">
-                                <td className="p-2 border border-black text-center">{toRoman(Object.keys(groupedWorkItems).length + 1)}</td>
+                                <td className="p-2 border border-black text-center">{toRoman(sortedGroupedWorkItems.length + 1)}</td>
                                 <td className="p-2 border border-black uppercase" colSpan="4">BIAYA LAIN-LAIN</td>
                                 <td className="p-2 border border-black text-right">{formatNumber(totalBiayaLainLain)}</td>
                             </tr>

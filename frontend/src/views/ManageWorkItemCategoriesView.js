@@ -10,7 +10,6 @@ import {
   X,
   GripVertical,
 } from 'lucide-react'
-// --- PERUBAHAN: Mengganti pustaka drag-and-drop ---
 import {
   DndContext,
   closestCenter,
@@ -169,17 +168,17 @@ const ManageWorkItemCategoriesView = () => {
    * @return {JSX.Element} Komponen tabel kategori.
    */
   const CategoriesTable = () => (
-    <div className="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="overflow-x-auto bg-white border border-industrial-gray-light rounded-lg shadow-sm">
       <table className="w-full text-left">
-        <thead className="bg-gray-50 border-b border-gray-200">
+        <thead className="bg-gray-50 border-b border-industrial-gray-light">
           <tr>
             <th className="p-4 w-12 text-center">
               <span className="sr-only">Urutkan</span>
             </th>
-            <th className="p-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+            <th className="p-4 text-xs font-semibold text-industrial-gray uppercase tracking-wider">
               Nama Kategori
             </th>
-            <th className="p-4 text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">
+            <th className="p-4 text-xs font-semibold text-industrial-gray uppercase tracking-wider text-right">
               Aksi
             </th>
           </tr>
@@ -206,7 +205,7 @@ const ManageWorkItemCategoriesView = () => {
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
-                          className="w-full px-2 py-1 bg-white border border-blue-400 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-2 py-1 bg-white border border-industrial-accent-dark rounded-md text-industrial-dark focus:outline-none focus:ring-2 focus:ring-industrial-accent"
                           autoFocus
                         />
                       </td>
@@ -223,12 +222,12 @@ const ManageWorkItemCategoriesView = () => {
                     </>
                   ) : (
                     <>
-                      <td className="p-4 font-medium text-gray-800">
+                      <td className="p-4 font-medium text-industrial-dark">
                         {category.category_name}
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <button onClick={() => handleStartEdit(category)} className="p-1.5 text-gray-600 hover:text-blue-600" title="Edit">
+                          <button onClick={() => handleStartEdit(category)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent-dark" title="Edit">
                             <Edit3 size={16} />
                           </button>
                           <button onClick={() => handleDelete(category)} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus">
@@ -252,16 +251,16 @@ const ManageWorkItemCategoriesView = () => {
    * @return {JSX.Element} Komponen placeholder saat tidak ada data.
    */
   const NoDataDisplay = () => (
-    <div className="text-center py-16 px-6 border-2 border-dashed border-gray-300 rounded-lg">
-      <ClipboardList size={48} className="mx-auto text-gray-400" />
-      <h3 className="mt-4 text-xl font-semibold text-gray-800">
+    <div className="text-center py-16 px-6 border-2 border-dashed border-industrial-gray-light rounded-lg">
+      <ClipboardList size={48} className="mx-auto text-industrial-gray" />
+      <h3 className="mt-4 text-xl font-semibold text-industrial-dark">
         Belum Ada Kategori
       </h3>
-      <p className="mt-2 text-gray-500">
+      <p className="mt-2 text-industrial-gray-dark">
         Tambahkan kategori baru untuk komponen pekerjaan.
       </p>
       <div className="mt-6">
-        <button onClick={() => setShowModal(true)} className="flex items-center mx-auto px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 shadow-sm transition-colors">
+        <button onClick={() => setShowModal(true)} className="flex items-center mx-auto px-4 py-2 bg-industrial-accent text-white font-semibold rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors">
           <PlusCircle size={18} className="mr-2" /> Tambah Kategori Baru
         </button>
       </div>
@@ -269,21 +268,21 @@ const ManageWorkItemCategoriesView = () => {
   )
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="pb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-industrial-dark">
             Kelola Kategori Pekerjaan
           </h1>
           {userWorkItemCategories.length > 0 && (
-            <button onClick={() => setShowModal(true)} className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm transition-colors">
+            <button onClick={() => setShowModal(true)} className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-industrial-accent rounded-md hover:bg-industrial-accent-dark shadow-sm transition-colors">
               <PlusCircle size={18} className="mr-2" /> Tambah Kategori
             </button>
           )}
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center p-8 text-gray-500">
+          <div className="flex items-center justify-center p-8 text-industrial-gray-dark">
             <Loader2 className="animate-spin mr-2" />
             <span>Memuat data...</span>
           </div>
@@ -310,4 +309,4 @@ const ManageWorkItemCategoriesView = () => {
   )
 }
 
-export default ManageWorkItemCategoriesView
+export default ManageWorkItemCategoriesView;
