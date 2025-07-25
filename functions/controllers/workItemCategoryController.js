@@ -11,7 +11,11 @@ exports.getUserWorkItemCategories = async (req, res) => {
     if (!userId) return res.status(401).json({ message: "User ID is required." });
 
     try {
-        const [categories] = await pool.query('SELECT id, category_name FROM work_item_categories ORDER BY category_name ASC');
+        // PERUBAHAN: SELECT `order` dan ORDER BY `order`
+        const [categories] = await pool.query(
+            'SELECT id, category_name, `order` FROM work_item_categories WHERE user_id = ? ORDER BY `order` ASC', 
+            [userId]
+        );
 
         res.json(categories);
     } catch (error) {
@@ -32,16 +36,63 @@ exports.addWorkItemCategory = async (req, res) => {
     const trimmedCategoryName = category_name.trim();
     const newCategoryId = uuidv4();
     try {
-        const [existing] = await pool.query('SELECT id FROM work_item_categories WHERE category_name = ?', [userId, trimmedCategoryName]);
+        // Cek duplikat untuk user yang sama
+        const [existing] = await pool.query(
+            'SELECT id FROM work_item_categories WHERE user_id = ? AND category_name = ?', 
+            [userId, trimmedCategoryName]
+        );
         if (existing.length > 0) {
             return res.status(409).json({ message: `Category "${trimmedCategoryName}" already exists.` });
         }
 
-        await pool.query('INSERT INTO work_item_categories (id, user_id, category_name) VALUES (?, ?, ?)', [newCategoryId, userId, trimmedCategoryName]);
-        res.status(201).json({ id: newCategoryId, user_id: userId, category_name: trimmedCategoryName, message: 'Work item category added successfully' });
+        // PERUBAHAN: Tentukan nilai `order` baru
+        const [[{ max_order }]] = await pool.query(
+            'SELECT COALESCE(MAX(`order`), -1) as max_order FROM work_item_categories WHERE user_id = ?', 
+            [userId]
+        );
+        const newOrder = max_order + 1;
+
+        await pool.query(
+            'INSERT INTO work_item_categories (id, user_id, category_name, `order`) VALUES (?, ?, ?, ?)', 
+            [newCategoryId, userId, trimmedCategoryName, newOrder]
+        );
+        
+        // Kembalikan data lengkap termasuk order
+        res.status(201).json({ id: newCategoryId, user_id: userId, category_name: trimmedCategoryName, order: newOrder, message: 'Work item category added successfully' });
     } catch (error) {
         console.error('Error adding work item category:', error);
         res.status(500).json({ message: 'Failed to add work item category', error: error.message });
+    }
+};
+
+exports.updateWorkItemCategoriesOrder = async (req, res) => {
+    const userId = getUserIdFromRequest(req); // Menggunakan helper yang sudah ada
+    const { categories } = req.body; // Menerima array [{ id, order }, ...]
+
+    if (!Array.isArray(categories) || categories.length === 0) {
+        return res.status(400).json({ message: "Categories array is required." });
+    }
+
+    const connection = await pool.getConnection(); // Menggunakan pool dari atas file
+    try {
+        await connection.beginTransaction();
+
+        // Menjalankan semua query update
+        await Promise.all(categories.map(category => {
+            return connection.query(
+                'UPDATE work_item_categories SET `order` = ? WHERE id = ? AND user_id = ?',
+                [category.order, category.id, userId]
+            );
+        }));
+
+        await connection.commit();
+        res.json({ message: 'Categories order updated successfully.' });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error updating categories order:', error);
+        res.status(500).json({ message: 'Failed to update categories order', error: error.message });
+    } finally {
+        connection.release();
     }
 };
 

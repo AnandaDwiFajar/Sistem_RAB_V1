@@ -83,6 +83,20 @@ export const deleteWorkItemCategoryApi = (categoryId) => request(`${API_BASE_URL
     method: 'DELETE',
 });
 
+/**
+ * Memperbarui urutan kategori item pekerjaan.
+ * @param {string} userId - ID pengguna. // <-- PERBAIKAN: Tambahkan userId sebagai parameter
+ * @param {Array<object>} categories - Array objek kategori dengan id dan order baru.
+ * @return {Promise<object>}
+ */
+export const updateWorkItemCategoriesOrderApi = (userId, categories) => {
+    // --- PERBAIKAN: Panggil URL yang benar dan gunakan method PATCH ---
+    return request(`${API_BASE_URL}/work-item-categories/order/user/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ categories }),
+    });
+};
+
 // Cash Flow Categories
 export const fetchCashFlowCategories = (userId) => request(`${API_BASE_URL}/cash-flow-categories/user/${userId}`);
 export const addCashFlowCategoryApi = (userId, categoryName) => request(`${API_BASE_URL}/cash-flow-categories/user/${userId}`, {

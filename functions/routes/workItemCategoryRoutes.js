@@ -9,7 +9,7 @@ const workItemCategoryController = require('../controllers/workItemCategoryContr
 router.get('/user/:userId', workItemCategoryController.getUserWorkItemCategories);
 // POST a new work item category for a user
 router.post('/user/:userId', workItemCategoryController.addWorkItemCategory);
-// DELETE a work item category (categoryId in path, userId can be in query or from auth)
+router.patch('/order/user/:userId', workItemCategoryController.updateWorkItemCategoriesOrder);
 router.put('/:categoryId', workItemCategoryController.updateWorkItemCategory);
 router.delete('/:categoryId', workItemCategoryController.deleteWorkItemCategory);
 

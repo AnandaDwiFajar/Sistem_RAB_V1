@@ -229,6 +229,26 @@ export const useUserData = () => {
     }, [userId, showToast, showConfirm]);
 
 
+    const handleUpdateCategoriesOrder = async (orderedCategories) => {
+        const originalOrder = [...userWorkItemCategories];
+        try {
+            const payload = orderedCategories.map((category, index) => ({
+                id: category.id,
+                order: index
+            }));
+            
+            // --- PERBAIKAN: Kirim 'userId' sebagai parameter pertama ---
+            await apiService.updateWorkItemCategoriesOrderApi(userId, payload);
+            
+            showToast('success', 'Urutan kategori berhasil diperbarui.');
+        } catch (error) {
+            console.error("Failed to update categories order", error);
+            setUserWorkItemCategories(originalOrder);
+            showToast('error', `Gagal memperbarui urutan: ${error.message}`);
+        }
+    };
+
+
     return {
         userWorkItemCategories,
         userUnits,
@@ -242,5 +262,7 @@ export const useUserData = () => {
         handleUpdateWorkItemCategory,
         handleDeleteWorkItemCategory,
         handleDeleteUnit,
-    };
+        handleUpdateCategoriesOrder,
+        setUserWorkItemCategories,
+        };
 };
