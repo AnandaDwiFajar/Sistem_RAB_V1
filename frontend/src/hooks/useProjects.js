@@ -817,56 +817,57 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
     }, [currentProject, showToast, setIsFetchingProjectInsights, setProjectInsights, setShowInsightsModal]);
 
     const handleGenerateProjectReport = useCallback(async (projectId) => {
-      if (!projectId) {
-          showToast('error', 'Project ID tidak ditemukan.');
-          return;
-      }
-
+      // Validasi awal (sudah bagus)
       const project = projects.find(p => p.id === projectId) || currentProject;
       if (!project) {
-          showToast('error', 'Data proyek tidak ditemukan untuk membuat nama file.');
+          showToast('error', 'Data proyek tidak ditemukan.');
           return;
       }
-      
+      // Cek referensi ke komponen laporan
+      if (!reportContentRef.current) {
+          showToast('error', 'Komponen laporan tidak siap. Coba lagi sebentar.');
+          console.error("Report content ref is not available.");
+          return;
+      }
+  
       setIsGeneratingReport(true);
-      showToast('info', 'Mempersiapkan laporan PDF...');
-
+      showToast('info', 'Membuat laporan PDF, mohon tunggu...');
+  
       try {
-          // Ganti '/api/projects' jika prefix API Anda berbeda
-          const response = await fetch(`/api/projects/${projectId}/report`);
-
-          if (!response.ok) {
-              // Mencoba membaca pesan error dari backend jika ada
-              const errorText = await response.text();
-              throw new Error(`Gagal membuat laporan: ${response.status} ${errorText}`);
-          }
-
-          // Mengambil data sebagai blob (file)
-          const blob = await response.blob();
-          // Membuat URL sementara untuk file blob
-          const url = window.URL.createObjectURL(blob);
-          
-          // Membuat elemen link sementara untuk memicu download
-          const link = document.createElement('a');
-          link.href = url;
+          // 1. Gunakan html2canvas untuk mengambil gambar dari komponen laporan
+          const canvas = await html2canvas(reportContentRef.current, {
+              scale: 2, // Meningkatkan resolusi gambar agar tidak pecah
+              useCORS: true,
+          });
+  
+          const imgData = canvas.toDataURL('image/png');
+  
+          // 2. Buat dokumen PDF dengan jsPDF
+          // A4 page size: 210mm x 297mm
+          const pdf = new jsPDF({
+              orientation: 'portrait',
+              unit: 'mm',
+              format: 'a4',
+          });
+  
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const canvasWidth = canvas.width;
+          const canvasHeight = canvas.height;
+          const canvasAspectRatio = canvasWidth / canvasHeight;
+  
+          const imgHeight = pdfWidth / canvasAspectRatio;
+          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
           const fileName = `RAB-${project.project_name.replace(/\s+/g, '_')}.pdf`;
-          link.setAttribute('download', fileName);
-          
-          // Menambahkan link ke body, mengkliknya, lalu menghapusnya
-          document.body.appendChild(link);
-          link.click();
-          link.parentNode.removeChild(link);
-
-          // Melepaskan URL objek setelah selesai
-          window.URL.revokeObjectURL(url);
-          showToast('success', 'Laporan PDF berhasil diunduh.');
+          pdf.save(fileName);
+          showToast('success', 'Laporan PDF berhasil dibuat!');
       } catch (error) {
           console.error("Error generating PDF report:", error);
-          showToast('error', `Gagal mengunduh laporan: ${error.message}`);
+          showToast('error', `Gagal membuat laporan PDF: ${error.message}`);
       } finally {
           setIsGeneratingReport(false);
       }
-  }, [projects, currentProject, showToast]);
+  }, [projects, currentProject, showToast, reportContentRef]);
 
     const fetchProjectById = useCallback((projectId) => {
       handleSelectProject(projectId);

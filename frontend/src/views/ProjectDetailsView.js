@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import ProjectWorkItemsView from './ProjectWorkItemsView';
 import ProjectCashFlowView from './ProjectCashFlowView';
 import WelcomeDashboard from './WelcomeDashboard'; // Impor komponen WelcomeDashboard
+import ProjectReport from './ProjectReport'; // <-- TAMBAHKAN IMPOR INI
 
 const ProjectDetailsView = () => {
     const { projectId } = useParams();
@@ -19,7 +20,9 @@ const ProjectDetailsView = () => {
         isLoading, 
         error,
         currentProjectView,
-        setCurrentProjectView
+        setCurrentProjectView,
+        handleGenerateProjectReport,
+        reportContentRef,
     } = projectsManager;
 
     useEffect(() => {
@@ -99,6 +102,13 @@ const ProjectDetailsView = () => {
                         {...projectsManager}
                     />
                 )}
+            </div>
+            <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', zIndex: -1 }}>
+                <ProjectReport
+                  ref={reportContentRef}
+                  project={currentProject}
+                  allCategories={userData.userWorkItemCategories}
+                />
             </div>
         </div>
     );
