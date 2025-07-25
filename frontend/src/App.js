@@ -1,3 +1,4 @@
+//App.js
 import React, { useEffect, useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -185,7 +186,13 @@ function App() {
                     />
                     <Route
                         path="material-prices"
-                        element={<MaterialPricesView materialPricesManager={materialPricesManager} />}
+                        element={
+                            <MaterialPricesView 
+                                materialPricesManager={materialPricesManager}
+                                onAddNew={() => materialPricesManager.setShowPriceForm(true)}
+                                onEdit={materialPricesManager.handleEditPrice}
+                            />
+                        }
                     />
                     <Route path="work-item-definitions" element={
                         <WorkItemDefinitionsView 

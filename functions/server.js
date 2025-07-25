@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -10,6 +9,14 @@ const PORT = process.env.PORT || 3002;
 // Middleware
 app.use(cors()); // TODO: Configure specific origins for production
 app.use(express.json());
+
+// ✅ PERBAIKAN: Middleware logging sederhana di paling atas
+// Ini akan mencatat setiap request yang masuk ke server backend ini.
+app.use((req, res, next) => {
+    console.log(`[INCOMING REQUEST] ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+    next(); // Lanjutkan ke middleware atau rute berikutnya
+});
+
 
 // --- Placeholder for Auth Middleware ---
 // In a real app, you'd have middleware to verify tokens and attach user info to req

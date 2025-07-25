@@ -7,7 +7,9 @@ const MaterialPricesView = ({ materialPricesManager, onAddNew, onEdit }) => {
     const { 
         materialPrices = [], 
         isLoading = true, 
-        handleDeletePrice 
+        handleDeletePrice,
+        handleUpdatePrice,
+        handleEditPrice
     } = materialPricesManager || {};
 
     // Show a loading spinner if the manager is not yet available or if it's loading

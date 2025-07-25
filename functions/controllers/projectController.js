@@ -840,4 +840,23 @@ exports.deleteManualCashFlowEntry = async (req, res) => {
     } finally {
         if (connection) connection.release();
     }
+    
+    module.exports = {
+        getFullProjectDetails,
+        getUserProjects,
+        addProject,
+        getProjectById,
+        deleteProject,
+        unarchiveProject,
+        getArchivedUserProjects,
+        archiveProject,
+        addWorkItemToProject,
+        deleteWorkItemFromProject,
+        updateWorkItemFromProject,
+        addManualCashFlowEntry,
+        updateManualCashFlowEntry,
+        updateProject,
+        deleteManualCashFlowEntry
+    };
 };
+
