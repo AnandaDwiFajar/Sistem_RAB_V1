@@ -13,7 +13,6 @@ app.use(express.json());
 // ✅ PERBAIKAN: Middleware logging sederhana di paling atas
 // Ini akan mencatat setiap request yang masuk ke server backend ini.
 app.use((req, res, next) => {
-    console.log(`[INCOMING REQUEST] ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
     next(); // Lanjutkan ke middleware atau rute berikutnya
 });
 

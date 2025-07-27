@@ -2,50 +2,38 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const projectController = require('../controllers/projectController');
-// const { protect } = require('../middleware/authMiddleware'); // Your auth middleware
+// const { protect } = require('../middleware/authMiddleware'); // Middleware otentikasi Anda
 
-// Existing routes
+// --- Rute Proyek & Work Items yang Sudah Ada ---
 router.get('/user/:userId', projectController.getUserProjects);
 router.post('/user/:userId', projectController.addProject);
-router.put('/:projectId', projectController.updateProject); 
-router.get('/:projectId/user/:userId', projectController.getProjectById); // Assuming userId is part of the path for this
-router.delete('/:projectId/user/:userId', projectController.deleteProject); // Assuming userId is part of the path for this
+router.put('/:projectId', projectController.updateProject);
+router.get('/:projectId/user/:userId', projectController.getProjectById);
+router.delete('/:projectId/user/:userId', projectController.deleteProject);
 
+// --- Rute Arsip ---
 router.get('/user/:userId/archived', /* protect, */ projectController.getArchivedUserProjects);
-router.put('/:projectId/archive', /* protect, */ projectController.archiveProject);     // Using PUT to change state
+router.put('/:projectId/archive', /* protect, */ projectController.archiveProject);
 router.put('/:projectId/unarchive', /* protect, */ projectController.unarchiveProject);
-router.post(
-    '/:projectId/work-items',
-    // protect,
-    projectController.addWorkItemToProject
-);
-router.put(
-    '/:projectId/work-items/:workItemId',
-    // protect, // Terapkan middleware otentikasi jika diperlukan
-    projectController.updateWorkItemFromProject // Hubungkan ke controller yang baru dibuat
-);
 
-router.delete(
-    '/:projectId/work-items/:workItemId',
-    // yourAuthMiddleware, // if you use it
-    projectController.deleteWorkItemFromProject
-);
+// --- Rute Work Items ---
+router.post('/:projectId/work-items', /* protect, */ projectController.addWorkItemToProject);
+router.put('/:projectId/work-items/:workItemId', /* protect, */ projectController.updateWorkItemFromProject);
+router.delete('/:projectId/work-items/:workItemId', /* protect, */ projectController.deleteWorkItemFromProject);
 
-router.post(
-    '/:projectId/cashflow-entries',
-    // protect, // Apply authentication middleware if needed
-    projectController.addManualCashFlowEntry // Make sure this function exists in projectController.js
-);
-router.delete(
-    '/:projectId/cashflow-entries/:entryId',
-    // protect, // Apply authentication middleware if needed
-    projectController.deleteManualCashFlowEntry // We will create this controller function next
-);
+// --- Rute Cash Flow ---
+router.post('/:projectId/cashflow-entries', /* protect, */ projectController.addManualCashFlowEntry);
+router.put('/:projectId/cashflow-entries/:entryId', /* protect, */ projectController.updateManualCashFlowEntry);
+router.delete('/:projectId/cashflow-entries/:entryId', /* protect, */ projectController.deleteManualCashFlowEntry);
 
-router.put(
-    '/:projectId/cashflow-entries/:entryId',
-    // protect, // Your auth middleware
-    projectController.updateManualCashFlowEntry // Needs to be implemented
+
+// ======================================================================
+// --- ✅ RUTE BARU UNTUK LAPORAN PDF ---
+// ======================================================================
+router.get(
+    '/:projectId/report',
+    // protect, // Aktifkan middleware otentikasi jika diperlukan
+    projectController.generateProjectReport // Hubungkan ke controller baru
 );
 
 

@@ -18,7 +18,6 @@ exports.getUserWorkItemDefinitions = async (req, res) => {
             FROM work_item_components wid
             LEFT JOIN work_item_categories udwic ON wid.category_id = udwic.id
             ORDER BY wid.name ASC`,
-            [userId]
         );
 
         if (baseDefinitions.length === 0) {
@@ -51,10 +50,9 @@ exports.getUserWorkItemDefinitions = async (req, res) => {
 
 exports.getWorkItemDefinitionById = async (req, res) => {
     const { definitionId } = req.params;
-    const userId = getUserIdFromRequest(req);
 
-    if (!userId || !definitionId) {
-        return res.status(400).json({ message: "User ID and Definition ID are required." });
+    if (!definitionId) {
+        return res.status(400).json({ message: "Definition ID is required." });
     }
 
     try {
@@ -66,11 +64,11 @@ exports.getWorkItemDefinitionById = async (req, res) => {
             FROM work_item_components wid
             LEFT JOIN work_item_categories udwic ON wid.category_id = udwic.id
             WHERE wid.id = ?`,
-            [definitionId, userId]
+            [definitionId]
         );
 
         if (definitionsData.length === 0) {
-            return res.status(404).json({ message: "Work item definition not found or not owned by user." });
+            return res.status(404).json({ message: "Work item definition not found." });
         }
         const def = definitionsData[0];
         const [componentsData] = await pool.query(

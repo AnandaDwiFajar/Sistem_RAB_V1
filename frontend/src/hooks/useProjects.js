@@ -19,7 +19,6 @@ const initialProjectFormData = {
 };
 export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, userWorkItemCategories) => {
       const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-      const reportContentRef = useRef(null);
       const { showToast, showConfirm } = useUI();
       const [archivedProjects, setArchivedProjects] = useState([]);
       const { userId, userRole, isLoading: isAuthLoading, login, logout } = useAuth();
@@ -817,57 +816,48 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
     }, [currentProject, showToast, setIsFetchingProjectInsights, setProjectInsights, setShowInsightsModal]);
 
     const handleGenerateProjectReport = useCallback(async (projectId) => {
-      // Validasi awal (sudah bagus)
       const project = projects.find(p => p.id === projectId) || currentProject;
       if (!project) {
           showToast('error', 'Data proyek tidak ditemukan.');
           return;
       }
-      // Cek referensi ke komponen laporan
-      if (!reportContentRef.current) {
-          showToast('error', 'Komponen laporan tidak siap. Coba lagi sebentar.');
-          console.error("Report content ref is not available.");
-          return;
-      }
-  
+
       setIsGeneratingReport(true);
       showToast('info', 'Membuat laporan PDF, mohon tunggu...');
-  
+
       try {
-          // 1. Gunakan html2canvas untuk mengambil gambar dari komponen laporan
-          const canvas = await html2canvas(reportContentRef.current, {
-              scale: 2, // Meningkatkan resolusi gambar agar tidak pecah
-              useCORS: true,
-          });
-  
-          const imgData = canvas.toDataURL('image/png');
-  
-          // 2. Buat dokumen PDF dengan jsPDF
-          // A4 page size: 210mm x 297mm
-          const pdf = new jsPDF({
-              orientation: 'portrait',
-              unit: 'mm',
-              format: 'a4',
-          });
-  
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-          const canvasWidth = canvas.width;
-          const canvasHeight = canvas.height;
-          const canvasAspectRatio = canvasWidth / canvasHeight;
-  
-          const imgHeight = pdfWidth / canvasAspectRatio;
-          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
+        // Panggil fungsi API baru untuk mengunduh laporan
+          const reportBlob = await apiService.downloadProjectReportApi(userId, projectId);
+        
+        // Buat URL sementara untuk file PDF yang diterima
+          const url = window.URL.createObjectURL(reportBlob);
+        
+        // Buat elemen link tersembunyi untuk memicu unduhan
+          const link = document.createElement('a');
+          link.href = url;
+        
+        // Tentukan nama file
           const fileName = `RAB-${project.project_name.replace(/\s+/g, '_')}.pdf`;
-          pdf.save(fileName);
-          showToast('success', 'Laporan PDF berhasil dibuat!');
+          link.setAttribute('download', fileName);
+        
+        // Tambahkan ke body, klik, lalu hapus
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode.removeChild(link);
+
+        // Hapus URL objek setelah selesai
+          window.URL.revokeObjectURL(url);
+          
+          showToast('success', 'Laporan PDF berhasil diunduh!');
       } catch (error) {
           console.error("Error generating PDF report:", error);
-          showToast('error', `Gagal membuat laporan PDF: ${error.message}`);
+          // Coba baca error dari blob jika ada
+          const errorMessage = error.response ? await error.response.text() : error.message;
+          showToast('error', `Gagal membuat laporan PDF: ${errorMessage}`);
       } finally {
           setIsGeneratingReport(false);
       }
-  }, [projects, currentProject, showToast, reportContentRef]);
+    }, [projects, currentProject, userId, showToast]);
 
     const fetchProjectById = useCallback((projectId) => {
       handleSelectProject(projectId);
@@ -937,7 +927,6 @@ const clearProjects = useCallback(() => {
         handleSaveOrUpdateProject,
         handleCancelEdit, 
         handleGenerateProjectReport,
-        reportContentRef,
         // Setters
         setCurrentProject,
         setCurrentProjectView,

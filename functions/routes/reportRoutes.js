@@ -96,13 +96,28 @@ router.get('/:projectId/report', async (req, res) => {
         }
 
         // --- Persiapan Data (Tidak ada perubahan) ---
-        const groupedWorkItems = (project.workItems || []).reduce((acc, item) => {
-            const category = item.category_name || "Pekerjaan Lain-lain";
-            if (!acc[category]) { acc[category] = { items: [], subtotal: 0 }; }
-            acc[category].items.push(item);
-            acc[category].subtotal += parseFloat(item.total_item_cost_snapshot || 0);
-            return acc;
-        }, {});
+        const groupedWorkItems = [];
+        const categoryMap = new Map();
+        
+        (project.workItems || []).forEach(item => {
+            const categoryName = item.category_name || "Pekerjaan Lain-lain";
+            
+            if (!categoryMap.has(categoryName)) {
+                // Jika kategori baru, buat entri baru dan tambahkan ke array
+                const newCategory = {
+                    category_name: categoryName,
+                    items: [],
+                    subtotal: 0
+                };
+                categoryMap.set(categoryName, newCategory);
+                groupedWorkItems.push(newCategory);
+            }
+            
+            // Tambahkan item dan subtotal ke kategori yang sudah ada
+            const category = categoryMap.get(categoryName);
+            category.items.push(item);
+            category.subtotal += parseFloat(item.total_item_cost_snapshot || 0);
+        });
         
         const jumlahTotalPekerjaan = Object.values(groupedWorkItems).reduce((sum, group) => sum + group.subtotal, 0);
         const biayaLainLainEntries = project.cashFlowEntries.filter(entry => !entry.is_auto_generated);

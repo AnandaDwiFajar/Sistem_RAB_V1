@@ -13,8 +13,7 @@ exports.getUserWorkItemCategories = async (req, res) => {
     try {
         // PERUBAHAN: SELECT `order` dan ORDER BY `order`
         const [categories] = await pool.query(
-            'SELECT id, category_name, `order` FROM work_item_categories WHERE user_id = ? ORDER BY `order` ASC', 
-            [userId]
+            'SELECT id, category_name, `order` FROM work_item_categories ORDER BY `order` ASC'
         );
 
         res.json(categories);
@@ -47,8 +46,7 @@ exports.addWorkItemCategory = async (req, res) => {
 
         // PERUBAHAN: Tentukan nilai `order` baru
         const [[{ max_order }]] = await pool.query(
-            'SELECT COALESCE(MAX(`order`), -1) as max_order FROM work_item_categories WHERE user_id = ?', 
-            [userId]
+            'SELECT COALESCE(MAX(`order`), -1) as max_order FROM work_item_categories'
         );
         const newOrder = max_order + 1;
 
@@ -80,8 +78,8 @@ exports.updateWorkItemCategoriesOrder = async (req, res) => {
         // Menjalankan semua query update
         await Promise.all(categories.map(category => {
             return connection.query(
-                'UPDATE work_item_categories SET `order` = ? WHERE id = ? AND user_id = ?',
-                [category.order, category.id, userId]
+                'UPDATE work_item_categories SET `order` = ? WHERE id = ?',
+                [category.order, category.id]
             );
         }));
 

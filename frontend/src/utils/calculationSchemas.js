@@ -1,23 +1,13 @@
 /**
  * @file src/utils/calculationSchemas.js
- * Mendefinisikan semua skema kalkulasi yang tersedia dalam aplikasi.
- * Setiap skema berisi metadata, parameter input, output, dan fungsi kalkulasi.
- * Skema dikelompokkan berdasarkan kategori pekerjaan konstruksi untuk kemudahan navigasi di UI.
- *
- * KONVENSI:
- * - Volume: Satuan dalam meter kubik (m³).
- * - Luas: Satuan dalam meter persegi (m²).
- * - Panjang: Satuan dalam meter (m), kecuali ditentukan lain.
- * - Berat: Satuan dalam kilogram (kg).
- * - Jumlah: Satuan dalam buah (bh), batang (btg), lembar (lbr), sak, dll.
- * - Koefisien: Berdasarkan Standar Nasional Indonesia (SNI) atau praktik umum di lapangan,
- * namun dapat disesuaikan oleh pengguna.
  */
 
 export const CALCULATION_SCHEMAS = {
-    // =================================================================================
-    // Kategori: 1. Pekerjaan Persiapan & Tanah
-    // =================================================================================
+    DEFAULT: {
+        id: 'DEFAULT',
+        name: 'Default',
+    },
+
     SITE_CLEARING: {
         id: 'SITE_CLEARING',
         group: '1. Pekerjaan Persiapan & Tanah',
@@ -140,9 +130,6 @@ export const CALCULATION_SCHEMAS = {
         },
     },
 
-    // =================================================================================
-    // Kategori: 2. Pekerjaan Pondasi
-    // =================================================================================
     STONE_FOUNDATION_VOLUME: {
         id: 'STONE_FOUNDATION_VOLUME',
         group: '2. Pekerjaan Pondasi',
@@ -219,9 +206,6 @@ export const CALCULATION_SCHEMAS = {
         },
     },
 
-    // =================================================================================
-    // Kategori: 3. Pekerjaan Beton & Pembesian
-    // =================================================================================
     CONCRETE_MATERIAL: {
         id: 'CONCRETE_MATERIAL',
         group: '3. Pekerjaan Beton & Pembesian',
@@ -405,10 +389,6 @@ export const CALCULATION_SCHEMAS = {
             return berat_per_meter * p;
         },
     },
-
-    // =================================================================================
-    // Kategori: 4. Pekerjaan Bekisting
-    // =================================================================================
     FORMWORK_BEAM: {
         id: 'FORMWORK_BEAM',
         group: '4. Pekerjaan Bekisting',
@@ -459,10 +439,6 @@ export const CALCULATION_SCHEMAS = {
             return p * l;
         }
     },
-
-    // =================================================================================
-    // Kategori: 5. Pekerjaan Dinding & Plesteran
-    // =================================================================================
     WALL_AREA_NET: {
         id: 'WALL_AREA_NET',
         group: '5. Pekerjaan Dinding & Plesteran',
@@ -558,10 +534,6 @@ export const CALCULATION_SCHEMAS = {
             return Math.ceil(totalCementKg / berat_sak);
         },
     },
-
-    // =================================================================================
-    // Kategori: 6. Pekerjaan Atap & Plafon
-    // =================================================================================
     PITCHED_ROOF_AREA: {
         id: 'PITCHED_ROOF_AREA',
         group: '6. Pekerjaan Atap & Plafon',
@@ -656,10 +628,6 @@ export const CALCULATION_SCHEMAS = {
             return `Hollow: ${btg_hollow} btg, Papan: ${lbr_papan} lbr`;
         }
     },
-
-    // =================================================================================
-    // Kategori: 7. Pekerjaan Lantai & Finishing
-    // =================================================================================
     FLOOR_SCREED: {
         id: 'FLOOR_SCREED',
         group: '7. Pekerjaan Lantai & Finishing',
@@ -761,10 +729,6 @@ export const CALCULATION_SCHEMAS = {
             return area / coverage;
         },
     },
-
-    // =================================================================================
-    // Kategori: 8. Pekerjaan Kusen, Pintu & Jendela
-    // =================================================================================
     DOOR_WINDOW_FRAME_WOOD: {
         id: 'DOOR_WINDOW_FRAME_WOOD',
         group: '8. Pekerjaan Kusen, Pintu & Jendela',
@@ -782,10 +746,6 @@ export const CALCULATION_SCHEMAS = {
             return p * (l_cm / 100) * (t_cm / 100);
         },
     },
-
-    // =================================================================================
-    // Kategori: 9. Pekerjaan MEP & Sanitasi
-    // =================================================================================
     SEPTIC_TANK_VOLUME: {
         id: 'SEPTIC_TANK_VOLUME',
         group: '9. Pekerjaan MEP & Sanitasi',
@@ -843,10 +803,6 @@ export const CALCULATION_SCHEMAS = {
             return `Pipa Air Bersih: ~${Math.ceil(cleanWaterPipe)} m, Pipa Air Kotor: ~${Math.ceil(wasteWaterPipe)} m`;
         },
     },
-
-    // =================================================================================
-    // Kategori: 10. Pekerjaan Eksterior & Halaman
-    // =================================================================================
     CONCRETE_CARPORT_SLAB_VOLUME: {
         id: 'CONCRETE_CARPORT_SLAB_VOLUME',
         group: '10. Pekerjaan Eksterior & Halaman',
@@ -918,9 +874,6 @@ export const CALCULATION_SCHEMAS = {
 };
 
 /**
- * Mengembalikan array objek yang disederhanakan dari skema kalkulasi,
- * cocok untuk digunakan dalam dropdown atau daftar pilihan di UI.
- * Setiap objek berisi id, nama, deskripsi, dan grup.
  * @return {Array<{id: string, name: string, description: string, group: string}>}
  */
 export const getCalculationSchemaTypes = () => {

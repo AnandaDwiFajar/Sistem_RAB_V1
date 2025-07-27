@@ -8,13 +8,13 @@ const StaffDashboard = ({ definitionsManager, materialPricesManager, userData })
     const { materialPrices, isLoading: isLoadingPrices } = materialPricesManager;
 
     return (
-        <div className="p-8 bg-gray-50 min-h-screen">
-            <header className="mb-12">
+        <div className="p-4 sm:p-6 lg:p-8 animate-fadeIn">
+            <header className="mb-8">
                 <h1 className="text-4xl font-bold text-industrial-dark">
-                    Selamat Datang, {userData?.name || 'Staff'}!
+                    Selamat Datang!
                 </h1>
                 <p className="text-lg text-gray-600">
-                    Dashboard operasional untuk mengelola data inti aplikasi.
+                    Dashboard operasional untuk mengelola data master aplikasi.
                 </p>
             </header>
 

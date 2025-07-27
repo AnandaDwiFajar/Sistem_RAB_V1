@@ -175,10 +175,10 @@ const ManageWorkItemCategoriesView = () => {
             <th className="p-4 w-12 text-center">
               <span className="sr-only">Urutkan</span>
             </th>
-            <th className="p-4 text-xs font-semibold text-industrial-gray uppercase tracking-wider">
+            <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider">
               Nama Kategori
             </th>
-            <th className="p-4 text-xs font-semibold text-industrial-gray uppercase tracking-wider text-right">
+            <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">
               Aksi
             </th>
           </tr>
@@ -269,8 +269,8 @@ const ManageWorkItemCategoriesView = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="pb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      <div className="max-w-full mx-auto">
+        <div className=" flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <h1 className="text-3xl font-bold text-industrial-dark">
             Kelola Kategori Pekerjaan
           </h1>
@@ -280,7 +280,9 @@ const ManageWorkItemCategoriesView = () => {
             </button>
           )}
         </div>
-
+        <p className="pb-2 text-industrial-gray-dark">
+            Urutan kategori akan mempengaruhi tampilan di RAB
+          </p>
         {isLoading ? (
           <div className="flex items-center justify-center p-8 text-industrial-gray-dark">
             <Loader2 className="animate-spin mr-2" />
