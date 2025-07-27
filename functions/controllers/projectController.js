@@ -1,4 +1,5 @@
 // controllers/projectController.js
+const path = require('path');
 const pool = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
 const PDFDocument = require('pdfkit');
@@ -910,13 +911,12 @@ exports.generateProjectReport = async (req, res) => {
 
     try {
         // 1. Ambil data lengkap proyek
-        // Pastikan getFullProjectDetails juga mengambil detail analisis (komponen) untuk setiap workItem
         const project = await getFullProjectDetails(projectId, userId, pool);
         if (!project) {
             return res.status(404).send("Laporan tidak dapat dibuat: Proyek tidak ditemukan.");
         }
 
-        // 2. Persiapan Data
+        // 2. Persiapan Data (Tidak ada perubahan)
         const groupedWorkItems = (project.workItems || []).reduce((acc, item) => {
             const category = item.category_name;
             if (!acc[category]) { acc[category] = { items: [], subtotal: 0 }; }
@@ -933,21 +933,93 @@ exports.generateProjectReport = async (req, res) => {
         const terbilangStr = terbilang(dibulatkan) + " rupiah";
         const terbilangFormatted = terbilangStr.charAt(0).toUpperCase() + terbilangStr.slice(1);
 
-        // 3. Buat dan kirim PDF
+        // 3. Buat Dokumen PDF
         const doc = new PDFDocument({ margin: 30, size: 'A4', bufferPages: true });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="RAB-${project.project_name.replace(/\s+/g, '_')}.pdf"`);
         doc.pipe(res);
 
-        // --- Mulai Menggambar Konten PDF LENGKAP ---
+        const generatePageHeader = (docInstance) => {
+            try {
+                const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+                const imageWidth = docInstance.page.width - docInstance.page.margins.left - docInstance.page.margins.right;
+                const imageX = docInstance.page.margins.left;
+                
+                docInstance.image(logoPath, imageX, 30, {
+                    width: imageWidth
+                });
+            } catch (imgError) {
+                console.error("Gagal memuat gambar logo:", imgError);
+                const imageWidth = docInstance.page.width - docInstance.page.margins.left - docInstance.page.margins.right;
+                const imageX = docInstance.page.margins.left;
+                docInstance.rect(imageX, 30, imageWidth, 60).stroke();
+                docInstance.fontSize(8).text('Logo Placeholder', 0, 55, { align: 'center' });
+            }
+            
+            docInstance.y = 100;
 
-        // Header Dokumen (Sama seperti sebelumnya)
-        doc.font('Helvetica-Bold').fontSize(14).text('RENCANA ANGGARAN BIAYA (RAB)', { align: 'center' });
-        doc.moveDown(0.5);
-        doc.lineWidth(1.5).moveTo(30, doc.y).lineTo(doc.page.width - 30, doc.y).stroke();
-        doc.moveDown();
 
-        // Detail Proyek (Sama seperti sebelumnya)
+            docInstance.moveDown(1);
+            docInstance.font('Helvetica-Bold').fontSize(14).text('RENCANA ANGGARAN BIAYA (RAB)', {
+                align: 'center'
+            });
+             
+        };
+
+        const tableLeft = 30;
+        const headerHeight = 25;
+        const columns = [
+            { id: 'no', header: 'NO.', width: 35, align: 'center' },
+            { id: 'uraian', header: 'URAIAN PEKERJAAN', width: 220, align: 'left' },
+            { id: 'vol', header: 'VOL.', width: 45, align: 'right' },
+            { id: 'sat', header: 'SAT.', width: 40, align: 'center' },
+            { id: 'harga_satuan', header: 'HARGA SATUAN (Rp)', width: 95, align: 'right' },
+            { id: 'jumlah', header: 'JUMLAH HARGA (Rp)', width: 95, align: 'right' }
+        ];
+        const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
+        const tableBorderColor = '#AAAAAA';
+        const tableBorderWidth = 0.5;
+
+        // --- PERBAIKAN FUNGSI HEADER TABEL ---
+        const drawTableHeader = () => {
+            const y = doc.y;
+            let currentX = tableLeft;
+
+            // Gambar background header
+            doc.rect(tableLeft, y, tableWidth, headerHeight).fillAndStroke('#E5E7EB', tableBorderColor);
+            
+            // Atur style teks
+            doc.fillColor('black').font('Helvetica-Bold').fontSize(8);
+            doc.lineWidth(tableBorderWidth).strokeColor(tableBorderColor);
+
+            // Gambar teks dan garis vertikal untuk setiap kolom
+            columns.forEach(col => {
+                // Gambar teks header
+                doc.text(col.header, currentX, y + 8, { width: col.width, align: 'center' });
+                
+                // Pindahkan posisi X untuk kolom berikutnya
+                currentX += col.width;
+                
+                // Gambar garis vertikal pemisah
+                if (currentX < tableLeft + tableWidth) {
+                    doc.moveTo(currentX, y).lineTo(currentX, y + headerHeight).stroke();
+                }
+            });
+
+            // Set posisi Y setelah header tabel selesai digambar
+            doc.y = y + headerHeight;
+        };
+        
+        doc.on('pageAdded', () => {
+            generatePageHeader(doc);
+            doc.y = 140; 
+            drawTableHeader();
+        });
+
+        generatePageHeader(doc);
+        doc.y = 140;
+
+        // Detail Proyek
         doc.font('Helvetica').fontSize(9);
         const detailsX = 30;
         let currentY = doc.y;
@@ -962,124 +1034,71 @@ exports.generateProjectReport = async (req, res) => {
         doc.y = currentY;
         doc.moveDown(2);
 
-        // Logika Penggambaran Tabel (Sama seperti sebelumnya)
-        const tableLeft = 30;
+        // 4. Logika Penggambaran Tabel
         const pageBottom = doc.page.height - doc.page.margins.bottom;
         const minRowHeight = 16;
-        const headerHeight = 25;
-        const columns = [
-            { id: 'no', header: 'NO.', width: 35, align: 'center' },
-            { id: 'uraian', header: 'URAIAN PEKERJAAN', width: 220, align: 'left' },
-            { id: 'vol', header: 'VOL.', width: 45, align: 'right' },
-            { id: 'sat', header: 'SAT.', width: 40, align: 'center' },
-            { id: 'harga_satuan', header: 'HARGA SATUAN (Rp)', width: 95, align: 'right' },
-            { id: 'jumlah', header: 'JUMLAH HARGA (Rp)', width: 95, align: 'right' }
-        ];
-        const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
         
-        const drawHeader = () => { /* ... (Sama seperti sebelumnya, tidak perlu diubah) */ };
-        // Implementasi drawHeader disembunyikan agar lebih ringkas, gunakan kode asli Anda
-        
-        // --- MODIFIKASI UTAMA: Mengumpulkan baris termasuk komponen ---
         const allRows = [];
         Object.entries(groupedWorkItems).forEach(([category, data], index) => {
-            // Baris Kategori (Contoh: I. PERSIAPAN)
             allRows.push({ type: 'category', no: toRoman(index + 1), uraian: category.toUpperCase(), jumlah: formatNumber(data.subtotal) });
-            
             data.items.forEach((item, subIndex) => {
                 let outputDetails = {};
                 try { if (item.output_details_json) outputDetails = JSON.parse(item.output_details_json); } catch (e) {}
-                
                 const volume = parseFloat(item.calculation_value || 0);
                 const totalCost = parseFloat(item.total_item_cost_snapshot || 0);
                 const unitPrice = volume > 0 ? totalCost / volume : 0;
-                
-                // Baris Item Pekerjaan Utama (Contoh: 1. Galian Tanah Pondasi)
-                allRows.push({ 
-                    type: 'item', 
-                    no: subIndex + 1, 
-                    uraian: item.definition_name_snapshot, 
-                    vol: formatNumber(volume), 
-                    sat: outputDetails.unit || 'ls', 
-                    harga_satuan: formatNumber(unitPrice), 
-                    jumlah: formatNumber(totalCost) 
-                });
+                allRows.push({ type: 'item', no: subIndex + 1, uraian: item.definition_name_snapshot, vol: formatNumber(volume), sat: outputDetails.unit || 'ls', harga_satuan: formatNumber(unitPrice), jumlah: formatNumber(totalCost) });
 
-                // --- BAGIAN BARU: Tambahkan baris komponen ---
-                // Asumsi data komponen ada di 'item.analysis_details_json'
-                // Formatnya adalah array: [{ name, quantity, unit, price }, ...]
                 let components = [];
-                // Langsung gunakan datanya karena sudah berupa objek/array
                 if (item.components_snapshot && Array.isArray(item.components_snapshot)) {
                     components = item.components_snapshot;
                 }
-                
                 if (Array.isArray(components)) {
                     components.forEach(component => {
-                        // Menggunakan nama properti yang BENAR dari JSON Anda
                         const name = component.component_name_snapshot;
-                        const totalQty = parseFloat(component.quantity_calculated || 0);     // DIUBAH
+                        const totalQty = parseFloat(component.quantity_calculated || 0);
                         const unit = component.unit_snapshot || 'ls';
-                        const unitPrice = parseFloat(component.price_per_unit_snapshot || 0); // DIUBAH
-                        const totalCost = parseFloat(component.cost_calculated || 0);         // DIUBAH
-                        
-                        allRows.push({
-                            type: 'component',
-                            uraian: `- ${name}`,
-                            vol: formatNumber(totalQty),
-                            sat: unit,
-                            harga_satuan: formatNumber(unitPrice),
-                            jumlah: formatNumber(totalCost)
-                        });
+                        const unitPriceComp = parseFloat(component.price_per_unit_snapshot || 0);
+                        const totalCostComp = parseFloat(component.cost_calculated || 0);
+                        allRows.push({ type: 'component', uraian: `- ${name}`, vol: formatNumber(totalQty), sat: unit, harga_satuan: formatNumber(unitPriceComp), jumlah: formatNumber(totalCostComp) });
                     });
                 }
             });
         });
 
         if (biayaLainLainEntries.length > 0) {
-            // ... (Logika biaya lain-lain sama seperti sebelumnya)
+            allRows.push({ type: 'category', no: toRoman(Object.keys(groupedWorkItems).length + 1), uraian: 'BIAYA LAIN-LAIN', jumlah: formatNumber(totalBiayaLainLain) });
+            biayaLainLainEntries.forEach((entry, index) => {
+                allRows.push({ type: 'item', no: index + 1, uraian: entry.description, vol: '', sat: '', harga_satuan: '', jumlah: formatNumber(entry.amount) });
+            });
         }
         allRows.push({ type: 'summary', label: 'JUMLAH', value: formatNumber(jumlahTotalPekerjaan) });
         if (totalBiayaLainLain > 0) {
-            // ... (Logika summary sama seperti sebelumnya)
+            allRows.push({ type: 'summary', label: 'BIAYA LAIN-LAIN', value: formatNumber(totalBiayaLainLain) });
         }
         allRows.push({ type: 'summary_total', label: 'JUMLAH TOTAL', value: formatNumber(jumlahTotalAkhir) });
         allRows.push({ type: 'summary_total', label: 'DIBULATKAN', value: formatCurrency(dibulatkan) });
-        allRows.push({ type: 'terbilang', text: `Terbilang : ${terbilangFormatted}` });
+        allRows.push({ type: 'terbilang', text: terbilangFormatted });
         
-        // Menggambar header pertama kali
-        drawHeader();
+        drawTableHeader();
 
-        // --- MODIFIKASI KECIL: Loop utama untuk menggambar baris ---
+        // 5. Loop utama untuk menggambar baris-baris tabel
         allRows.forEach((row) => {
             let rowHeight = minRowHeight;
             let fontName = 'Helvetica';
             let fontSize = 8;
             let uraianText = row.uraian || row.label || row.text || '';
             
-            // MODIFIKASI: Penentuan font & style
-            if (row.type === 'category' || row.type === 'item') {
-                fontName = 'Helvetica-Bold';
-            } else if (row.type === 'component') {
-                fontName = 'Helvetica'; // Komponen menggunakan font biasa
-            } else if (row.type === 'summary' || row.type === 'summary_total') {
-                fontName = 'Helvetica-Bold';
-                fontSize = 9;
-            } else if (row.type === 'terbilang') {
-                fontName = 'Helvetica-Bold'; // Diubah agar "Terbilang :" jadi bold
-                fontSize = 9;
-                rowHeight = minRowHeight * 1.5;
-            }
+            if (row.type === 'category' || (row.type === 'item' && row.vol)) fontName = 'Helvetica-Bold';
             
             const uraianColWidth = columns.find(c => c.id === 'uraian').width;
-            if (['category', 'item', 'component'].includes(row.type)) {
+            if (['category', 'item', 'component', 'terbilang'].includes(row.type)) {
                 const textHeight = doc.font(fontName).fontSize(fontSize).heightOfString(uraianText, { width: uraianColWidth - 8 });
                 rowHeight = Math.max(minRowHeight, textHeight + 6);
             }
 
             if (doc.y + rowHeight >= pageBottom) {
                 doc.addPage();
-                drawHeader();
             }
 
             const yBefore = doc.y;
@@ -1089,54 +1108,55 @@ exports.generateProjectReport = async (req, res) => {
                 doc.rect(x, yBefore, tableWidth, rowHeight).fill('#F3F4F6');
             }
 
-            const textY = yBefore + (rowHeight - doc.currentLineHeight()) / 2;
+            const textY = yBefore + (rowHeight - fontSize) / 2 - 1;
 
-            // MODIFIKASI: Logika penggambaran teks agar sesuai gambar
             if (row.type === 'summary' || row.type === 'summary_total') {
                 const labelWidth = columns.slice(0, 5).reduce((sum, col) => sum + col.width, 0);
-                doc.font(fontName).fontSize(fontSize).fillColor('black')
+                doc.font('Helvetica-Bold').fontSize(9).fillColor('black')
                    .text(row.label, tableLeft, textY, { width: labelWidth - 5, align: 'right' })
                    .text(row.value, tableLeft + labelWidth, textY, { width: columns[5].width - 4, align: 'right' });
             } else if (row.type === 'terbilang') {
-                doc.font('Helvetica-Bold').fontSize(9).text('Terbilang :', tableLeft + 4, textY, { continued: true })
-                   .font('Helvetica-Oblique').text(` ${terbilangFormatted.replace('Terbilang : ', '')}`);
+                doc.font('Helvetica-Bold').fontSize(9).fillColor('black')
+                   .text('Terbilang :', tableLeft + 4, textY, { continued: true })
+                   .font('Helvetica-Oblique')
+                   .text(` ${row.text}`);
             } else {
                 columns.forEach(col => {
                     let val = row[col.id] || '';
                     let textX = x;
-                    let currentFont = 'Helvetica'; // Default font untuk data numerik
-                    let textOptions = { width: col.width, align: col.align };
-                    
-                    // Set font khusus untuk kolom No dan Uraian
-                    if (row.type === 'category' || row.type === 'item') {
+                    let currentFont = 'Helvetica';
+                    if (row.type === 'category' || (row.type === 'item' && row.vol)) {
                         if (['no', 'uraian'].includes(col.id)) currentFont = 'Helvetica-Bold';
-                    } else if (row.type === 'component') {
-                         if (col.id === 'uraian') currentFont = 'Helvetica';
                     }
                     
-                    if (col.align === 'left') {
-                        textX += 4; textOptions.width -= 8;
-                        // BARU: Indentasi untuk komponen
-                        if (row.type === 'component' && col.id === 'uraian') {
-                            textX += 10; textOptions.width -= 10;
-                        }
-                    } else if (col.align === 'right') {
-                        textX -= 4; textOptions.width -= 8;
-                    }
+                    let textOptions = { width: col.width, align: col.align };
+                    if (col.align === 'left') { textX += 4; textOptions.width -= 8; } 
+                    else if (col.align === 'right') { textX -= 4; textOptions.width -= 8; }
                     
-                    // BARU: Kosongkan sel yang tidak relevan
-                    if (row.type === 'category' && ['vol', 'sat', 'harga_satuan'].includes(col.id)) val = '';
-                    if (row.type === 'component' && col.id === 'no') val = '';
+                    if (row.type === 'component' && col.id === 'uraian') { textX += 10; textOptions.width -= 10; }
+                    if ((row.type === 'category' && ['vol', 'sat', 'harga_satuan'].includes(col.id)) || (row.type === 'component' && col.id === 'no')) val = '';
                     
                     doc.font(currentFont).fontSize(8).fillColor('black').text(String(val), textX, textY, textOptions);
                     x += col.width;
                 });
             }
             
+            doc.lineWidth(tableBorderWidth).strokeColor(tableBorderColor);
             doc.rect(tableLeft, yBefore, tableWidth, rowHeight).stroke();
+            
+            if (['category', 'item', 'component'].includes(row.type)) {
+                let vX = tableLeft;
+                columns.forEach(col => {
+                    vX += col.width;
+                    if (vX < tableLeft + tableWidth) {
+                        doc.moveTo(vX, yBefore).lineTo(vX, yBefore + rowHeight).stroke();
+                    }
+                });
+            }
             doc.y = yBefore + rowHeight;
         });
 
+        // 6. Finalisasi Dokumen
         doc.end();
 
     } catch (error) {

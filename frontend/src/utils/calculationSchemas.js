@@ -90,6 +90,7 @@ export const CALCULATION_SCHEMAS = {
         calculate: (inputs) => {
             const [volGali, volStruktur] = [inputs.volume_galian, inputs.volume_struktur_bawah].map(parseFloat);
             if ([volGali, volStruktur].some(isNaN) || volGali <= 0 || volStruktur <= 0 || volGali < volStruktur) return null;
+            // Asumsi umum, hanya 1/3 tanah galian yang digunakan untuk urugan kembali
             return (volGali - volStruktur) / 3;
         },
     },
@@ -127,6 +128,23 @@ export const CALCULATION_SCHEMAS = {
             const volCut = area * cut;
             const volFill = area * fill;
             return `Volume Galian: ${volCut.toFixed(2)} m³, Volume Timbunan: ${volFill.toFixed(2)} m³`;
+        },
+    },
+    // --- BARU ---
+    SAND_BEDDING_VOLUME: {
+        id: 'SAND_BEDDING_VOLUME',
+        group: '1. Pekerjaan Persiapan & Tanah',
+        name: 'Volume Urugan Pasir Bawah Pondasi/Lantai',
+        description: 'Menghitung volume pasir urug sebagai lapisan dasar di bawah pondasi atau lantai.',
+        inputs: [
+            { key: 'luas_area', label: 'Luas Area Urugan', unitSymbol: 'm²', type: 'number', defaultValue: 50.00 },
+            { key: 'tebal_urugan', label: 'Tebal Urugan Pasir', unitSymbol: 'cm', type: 'number', defaultValue: 5 },
+        ],
+        output: { key: 'volume_pasir', label: 'Volume Pasir Urug', unitSymbol: 'm³' },
+        calculate: (inputs) => {
+            const [area, tebalCm] = [inputs.luas_area, inputs.tebal_urugan].map(parseFloat);
+            if ([area, tebalCm].some(isNaN) || area <= 0 || tebalCm <= 0) return null;
+            return area * (tebalCm / 100);
         },
     },
 
@@ -342,7 +360,7 @@ export const CALCULATION_SCHEMAS = {
             const btg_utama = total_p_utama / p_std;
             const l_sengkang = (l_beton / 100) - (2 * (selimut / 100));
             const t_sengkang = (t_beton / 100) - (2 * (selimut / 100));
-            const p_satu_sengkang = (2 * l_sengkang) + (2 * t_sengkang) + 0.10;
+            const p_satu_sengkang = (2 * l_sengkang) + (2 * t_sengkang) + 0.10; // 10cm untuk hak tekuk
             const jml_sengkang = Math.ceil(p_elemen / (jarak_sengkang_cm / 100));
             const total_p_sengkang = jml_sengkang * p_satu_sengkang;
             const btg_sengkang = total_p_sengkang / p_std;
@@ -385,10 +403,31 @@ export const CALCULATION_SCHEMAS = {
         calculate: (inputs) => {
             const [d, p] = [inputs.diameter_besi_mm, inputs.panjang_total_besi_m].map(parseFloat);
             if ([d, p].some(isNaN) || d <= 0 || p <= 0) return null;
+            // Rumus berat besi per meter: 0.006165 * D^2
             const berat_per_meter = 0.006165 * Math.pow(d, 2);
             return berat_per_meter * p;
         },
     },
+    // --- BARU ---
+    WIRE_MESH_QUANTITY: {
+        id: 'WIRE_MESH_QUANTITY',
+        group: '3. Pekerjaan Beton & Pembesian',
+        name: 'Kebutuhan Besi Wiremesh',
+        description: 'Menghitung kebutuhan wiremesh dalam satuan lembar untuk plat lantai.',
+        inputs: [
+            { key: 'luas_area_plat', label: 'Luas Area Plat', unitSymbol: 'm²', type: 'number', defaultValue: 100.00 },
+            { key: 'luas_wiremesh_lembar', label: 'Luas Wiremesh per Lembar', unitSymbol: 'm²', type: 'number', defaultValue: 11.34 }, // 2.1m x 5.4m
+            { key: 'overlap_percentage', label: 'Persentase Overlap', unitSymbol: '%', type: 'number', defaultValue: 10 },
+        ],
+        output: { key: 'jumlah_lembar', label: 'Jumlah Lembar Wiremesh', unitSymbol: 'lbr' },
+        calculate: (inputs) => {
+            const [area, area_per_sheet, overlap] = Object.values(inputs).map(parseFloat);
+            if ([area, area_per_sheet].some(isNaN) || area <= 0 || area_per_sheet <= 0 || overlap < 0) return null;
+            const required_area = area * (1 + (overlap / 100));
+            return Math.ceil(required_area / area_per_sheet);
+        },
+    },
+
     FORMWORK_BEAM: {
         id: 'FORMWORK_BEAM',
         group: '4. Pekerjaan Bekisting',
@@ -403,6 +442,7 @@ export const CALCULATION_SCHEMAS = {
         calculate: (inputs) => {
             const [h, w, l] = Object.values(inputs).map(parseFloat);
             if ([h, w, l].some(isNaN) || [h, w, l].some(v => v <= 0)) return null;
+            // Dihitung 2 sisi samping + 1 sisi bawah
             return ((2 * h) + w) * l;
         },
     },
@@ -420,6 +460,7 @@ export const CALCULATION_SCHEMAS = {
         calculate: (inputs) => {
             const [a, b, h] = Object.values(inputs).map(parseFloat);
             if ([a, b, h].some(isNaN) || [a, b, h].some(v => v <= 0)) return null;
+            // Keliling kolom x tinggi
             return (2 * a + 2 * b) * h;
         }
     },
@@ -439,6 +480,27 @@ export const CALCULATION_SCHEMAS = {
             return p * l;
         }
     },
+    // --- BARU ---
+    FORMWORK_FOUNDATION: {
+        id: 'FORMWORK_FOUNDATION',
+        group: '4. Pekerjaan Bekisting',
+        name: 'Luas Bekisting Pondasi Tapak',
+        description: 'Menghitung luas bekisting untuk sisi-sisi pondasi tapak (footing).',
+        inputs: [
+            { key: 'panjang_tapak', label: 'Panjang Tapak', unitSymbol: 'm', type: 'number', defaultValue: 1.00 },
+            { key: 'lebar_tapak', label: 'Lebar Tapak', unitSymbol: 'm', type: 'number', defaultValue: 1.00 },
+            { key: 'tinggi_tapak', label: 'Tinggi Tapak', unitSymbol: 'm', type: 'number', defaultValue: 0.30 },
+            { key: 'jumlah_titik', label: 'Jumlah Titik Pondasi', unitSymbol: 'bh', type: 'number', defaultValue: 12 },
+        ],
+        output: { key: 'luas_bekisting', label: 'Total Luas Bekisting', unitSymbol: 'm²' },
+        calculate: (inputs) => {
+            const [p, l, h, n] = Object.values(inputs).map(parseFloat);
+            if (Object.values(inputs).map(parseFloat).some(isNaN) || Object.values(inputs).map(parseFloat).some(v => v <= 0)) return null;
+            const perimeter = (p * 2) + (l * 2);
+            return perimeter * h * n;
+        },
+    },
+
     WALL_AREA_NET: {
         id: 'WALL_AREA_NET',
         group: '5. Pekerjaan Dinding & Plesteran',
@@ -534,6 +596,26 @@ export const CALCULATION_SCHEMAS = {
             return Math.ceil(totalCementKg / berat_sak);
         },
     },
+    // --- BARU ---
+    LIGHTWEIGHT_BRICK_ADHESIVE: {
+        id: 'LIGHTWEIGHT_BRICK_ADHESIVE',
+        group: '5. Pekerjaan Dinding & Plesteran',
+        name: 'Kebutuhan Perekat Bata Ringan',
+        description: 'Menghitung kebutuhan semen instan (perekat) untuk pasangan bata ringan (hebel).',
+        inputs: [
+            { key: 'luas_dinding', label: 'Luas Dinding (Netto)', unitSymbol: 'm²', type: 'number', defaultValue: 160.00 },
+            { key: 'kebutuhan_per_m2', label: 'Kebutuhan Perekat per m²', unitSymbol: 'kg/m²', type: 'number', defaultValue: 10 }, // Tergantung merk & tebal bata
+            { key: 'berat_sak', label: 'Berat Perekat per Sak', unitSymbol: 'kg', type: 'number', defaultValue: 40 },
+        ],
+        output: { key: 'kebutuhan_perekat', label: 'Jumlah Sak Perekat', unitSymbol: 'sak' },
+        calculate: (inputs) => {
+            const [area, consumption, weight] = Object.values(inputs).map(parseFloat);
+            if (Object.values(inputs).map(parseFloat).some(isNaN) || Object.values(inputs).map(parseFloat).some(v => v <= 0)) return null;
+            const totalKg = area * consumption;
+            return Math.ceil(totalKg / weight);
+        },
+    },
+
     PITCHED_ROOF_AREA: {
         id: 'PITCHED_ROOF_AREA',
         group: '6. Pekerjaan Atap & Plafon',
@@ -628,6 +710,26 @@ export const CALCULATION_SCHEMAS = {
             return `Hollow: ${btg_hollow} btg, Papan: ${lbr_papan} lbr`;
         }
     },
+    // --- BARU ---
+    ROOF_INSULATION_AREA: {
+        id: 'ROOF_INSULATION_AREA',
+        group: '6. Pekerjaan Atap & Plafon',
+        name: 'Kebutuhan Insulasi Atap',
+        description: 'Menghitung kebutuhan material insulasi (e.g., aluminium foil) dalam satuan rol.',
+        inputs: [
+            { key: 'luas_atap_miring', label: 'Luas Atap Miring', unitSymbol: 'm²', type: 'number', defaultValue: 150.00 },
+            { key: 'luas_insulasi_rol', label: 'Luas Insulasi per Rol', unitSymbol: 'm²/rol', type: 'number', defaultValue: 30 }, // 1.2m x 25m
+            { key: 'overlap_percentage', label: 'Persentase Overlap', unitSymbol: '%', type: 'number', defaultValue: 10 },
+        ],
+        output: { key: 'jumlah_rol', label: 'Jumlah Rol Insulasi', unitSymbol: 'rol' },
+        calculate: (inputs) => {
+            const [area, area_per_roll, overlap] = Object.values(inputs).map(parseFloat);
+            if ([area, area_per_roll].some(isNaN) || area <= 0 || area_per_roll <= 0 || overlap < 0) return null;
+            const required_area = area * (1 + (overlap / 100));
+            return Math.ceil(required_area / area_per_roll);
+        },
+    },
+
     FLOOR_SCREED: {
         id: 'FLOOR_SCREED',
         group: '7. Pekerjaan Lantai & Finishing',
@@ -676,6 +778,7 @@ export const CALCULATION_SCHEMAS = {
         calculate: (inputs) => {
             const [area, lebar_nat, konsumsi] = Object.values(inputs).map(parseFloat);
             if (Object.values(inputs).map(parseFloat).some(isNaN) || Object.values(inputs).map(parseFloat).some(v => v <= 0)) return null;
+            // Formula sederhana, bisa lebih kompleks tergantung ukuran keramik
             return area * konsumsi * (lebar_nat / 3);
         },
     },
@@ -729,6 +832,28 @@ export const CALCULATION_SCHEMAS = {
             return area / coverage;
         },
     },
+    // --- BARU ---
+    WALL_SKIRTING_LENGTH: {
+        id: 'WALL_SKIRTING_LENGTH',
+        group: '7. Pekerjaan Lantai & Finishing',
+        name: 'Kebutuhan Plint Lantai',
+        description: 'Menghitung total panjang dan jumlah batang plint lantai yang dibutuhkan.',
+        inputs: [
+            { key: 'panjang_dinding_pasang', label: 'Total Panjang Dinding', unitSymbol: 'm', type: 'number', defaultValue: 100.00 },
+            { key: 'lebar_bukaan_pintu', label: 'Rata-rata Lebar Pintu', unitSymbol: 'm', type: 'number', defaultValue: 0.9 },
+            { key: 'jumlah_bukaan_pintu', label: 'Jumlah Pintu', unitSymbol: 'bh', type: 'number', defaultValue: 5 },
+            { key: 'panjang_plint_batang', label: 'Panjang Plint per Batang', unitSymbol: 'm', type: 'number', defaultValue: 2.4 },
+        ],
+        output: { key: 'jumlah_batang', label: 'Jumlah Batang Plint', unitSymbol: 'btg' },
+        calculate: (inputs) => {
+            const [panjang_total, lebar_pintu, jumlah_pintu, panjang_batang] = Object.values(inputs).map(v => parseFloat(v || 0));
+            if ([panjang_total, panjang_batang].some(isNaN) || panjang_total <= 0 || panjang_batang <= 0 || lebar_pintu < 0 || jumlah_pintu < 0) return null;
+            const panjang_bersih = panjang_total - (lebar_pintu * jumlah_pintu);
+            if (panjang_bersih <= 0) return 0;
+            return Math.ceil(panjang_bersih / panjang_batang);
+        },
+    },
+
     DOOR_WINDOW_FRAME_WOOD: {
         id: 'DOOR_WINDOW_FRAME_WOOD',
         group: '8. Pekerjaan Kusen, Pintu & Jendela',
@@ -746,6 +871,7 @@ export const CALCULATION_SCHEMAS = {
             return p * (l_cm / 100) * (t_cm / 100);
         },
     },
+
     SEPTIC_TANK_VOLUME: {
         id: 'SEPTIC_TANK_VOLUME',
         group: '9. Pekerjaan MEP & Sanitasi',
@@ -760,6 +886,7 @@ export const CALCULATION_SCHEMAS = {
         calculate: (inputs) => {
             const [penghuni, pakai_air, periode] = Object.values(inputs).map(parseFloat);
             if (Object.values(inputs).map(parseFloat).some(isNaN) || Object.values(inputs).map(parseFloat).some(v => v <= 0)) return null;
+            // Rumus SNI dengan penambahan faktor keamanan
             const volume_liter = penghuni * pakai_air * periode * 1.5;
             return volume_liter / 1000;
         },
@@ -776,12 +903,12 @@ export const CALCULATION_SCHEMAS = {
         ],
         output: { key: 'panjang_kabel_rol', label: 'Estimasi Kabel', unitSymbol: 'rol' },
         calculate: (inputs) => {
-            const [lampu, kontak, rata] = Object.values(inputs).map(parseFloat);
+            const [lampu, kontak, rata] = Object.values(inputs).map(v => parseFloat(v || 0));
             if ([rata].some(isNaN) || rata <= 0 || lampu < 0 || kontak < 0) return null;
             const total_titik = lampu + kontak;
             if (total_titik <= 0) return 0;
             const totalLength = total_titik * rata;
-            const totalRolls = Math.ceil(totalLength / 50);
+            const totalRolls = Math.ceil(totalLength / 50); // Asumsi 1 rol = 50m
             return `${totalRolls} rol (~${totalLength} m)`;
         },
     },
@@ -798,11 +925,13 @@ export const CALCULATION_SCHEMAS = {
         calculate: (inputs) => {
             const [area, points] = Object.values(inputs).map(parseFloat);
             if ([area, points].some(isNaN) || area <= 0 || points <= 0) return null;
+            // Formula kasar berdasarkan pengalaman
             const cleanWaterPipe = (area * 0.4) + (points * 3);
             const wasteWaterPipe = (area * 0.3) + (points * 2);
             return `Pipa Air Bersih: ~${Math.ceil(cleanWaterPipe)} m, Pipa Air Kotor: ~${Math.ceil(wasteWaterPipe)} m`;
         },
     },
+
     CONCRETE_CARPORT_SLAB_VOLUME: {
         id: 'CONCRETE_CARPORT_SLAB_VOLUME',
         group: '10. Pekerjaan Eksterior & Halaman',
@@ -871,13 +1000,32 @@ export const CALCULATION_SCHEMAS = {
             return ((a + b) / 2) * t * p;
         },
     },
+    // --- BARU ---
+    PAVING_BLOCK_QUANTITY: {
+        id: 'PAVING_BLOCK_QUANTITY',
+        group: '10. Pekerjaan Eksterior & Halaman',
+        name: 'Kebutuhan Paving Block',
+        description: 'Menghitung jumlah paving block (konblok) yang dibutuhkan untuk halaman atau carport.',
+        inputs: [
+            { key: 'luas_area_pasang', label: 'Luas Area Pasang', unitSymbol: 'm²', type: 'number', defaultValue: 20.00 },
+            { key: 'kebutuhan_per_m2', label: 'Jumlah Paving per m²', unitSymbol: 'bh/m²', type: 'number', defaultValue: 44 }, // Contoh untuk model bata
+        ],
+        output: { key: 'jumlah_paving', label: 'Total Kebutuhan Paving', unitSymbol: 'bh' },
+        calculate: (inputs) => {
+            const [area, per_m2] = Object.values(inputs).map(parseFloat);
+            if ([area, per_m2].some(isNaN) || area <= 0 || per_m2 <= 0) return null;
+            return Math.ceil(area * per_m2);
+        },
+    },
 };
 
 /**
+ * Mengembalikan daftar semua tipe skema kalkulasi yang tersedia.
  * @return {Array<{id: string, name: string, description: string, group: string}>}
  */
 export const getCalculationSchemaTypes = () => {
     return Object.values(CALCULATION_SCHEMAS)
+        .filter(schema => schema.id !== 'DEFAULT') // Menyaring item default
         .map(schema => ({
             id: schema.id,
             name: schema.name,
