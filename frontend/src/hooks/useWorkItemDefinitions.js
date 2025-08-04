@@ -6,10 +6,10 @@ import { slugify, generateId } from '../utils/helpers';
 import { DEFAULT_PRIMARY_INPUT_LABELS } from '../utils/constants';
 import { CALCULATION_SCHEMAS } from '../utils/calculationSchemas';
 
-export const useWorkItemDefinitions = (materialPrices, userWorkItemCategories, userUnits) => {
+export const useWorkItemDefinitions = (materialPrices, userUnits) => {
     const { userId } = useAuth();
     const { showToast, showConfirm } = useUI();
-    
+    const [userWorkItemCategories, setUserWorkItemCategories] = useState([]);
     const [userWorkItemTemplates, setUserWorkItemTemplates] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSavingDefinition, setIsSavingDefinition] = useState(false);
@@ -44,39 +44,64 @@ export const useWorkItemDefinitions = (materialPrices, userWorkItemCategories, u
             .finally(() => setIsLoading(false));
     }, [userId, showToast]);
 
-    // --- PERBAIKAN 2: Gunakan fungsi fetch di dalam useEffect ---
+    const fetchWorkItemCategories = useCallback(() => {
+        if (!userId) {
+            setUserWorkItemCategories([]);
+            return Promise.resolve(); 
+        }
+        
+        console.log("1. MEMULAI FETCH KATEGORI..."); // LOG 1
+
+        return apiService.fetchWorkItemCategories(userId)
+            .then(data => {
+                console.log("2. API MENGEMBALIKAN DATA:", data); // LOG 2
+                setUserWorkItemCategories(data || []);
+            })
+            .catch(error => {
+                console.error("Error fetching work item categories:", error);
+                showToast('error', `Error fetching categories: ${error.message}`);
+                setUserWorkItemCategories([]);
+            });
+    }, [userId, showToast]);
+
     useEffect(() => {
         fetchWorkItemDefinitions();
-    }, [fetchWorkItemDefinitions]);
+        fetchWorkItemCategories(); 
+    }, [fetchWorkItemDefinitions, fetchWorkItemCategories]);
     
-    // Handlers
-    const handleOpenTemplateForm = useCallback((templateIdToEdit = null) => {
+    // --- HANDLER DENGAN LOGGING DAN ASYNC/AWAIT ---
+    const handleOpenTemplateForm = useCallback(async (templateIdToEdit = null) => {
+        console.log("3. TOMBOL 'TAMBAH/EDIT' DIKLIK."); // LOG 3
+        
+        await fetchWorkItemCategories();
+        
+        console.log("4. FETCH KATEGORI SELESAI. State 'userWorkItemCategories' SEKARANG HARUSNYA SUDAH TERBARU."); // LOG 4
+
         if (templateIdToEdit && userWorkItemTemplates[templateIdToEdit]) {
-          const templateToEdit = JSON.parse(JSON.stringify(userWorkItemTemplates[templateIdToEdit]));
-          templateToEdit.components = (templateToEdit.components || []).map(c => ({
-            ...c,
-            tempId: c.tempId || generateId(),
-            selectedResourceId: c.material_price_id || ''
-          }));
-          setEditingTemplateData(templateToEdit);
-          setSelectedTemplateKeyForEditing(templateIdToEdit);
+            const templateToEdit = JSON.parse(JSON.stringify(userWorkItemTemplates[templateIdToEdit]));
+            templateToEdit.components = (templateToEdit.components || []).map(c => ({
+                ...c,
+                tempId: c.tempId || generateId(),
+                selectedResourceId: c.material_price_id || ''
+            }));
+            setEditingTemplateData(templateToEdit);
+            setSelectedTemplateKeyForEditing(templateIdToEdit);
         } else {
-          const firstCategory = userWorkItemCategories.length > 0 ? userWorkItemCategories[0] : { id: '', category_name: 'Uncategorized' };
-          const firstUnit = userUnits.length > 0 ? userUnits[0] : { id: '', unit_name: '' };
-          setEditingTemplateData({
-            name: '',
-            definition_key: '',
-            category_id: firstCategory.id,
-            calculation_schema_type: '',
-            primary_input_label: DEFAULT_PRIMARY_INPUT_LABELS[0],
-            primary_input_nature: 'volume',
-            primary_input_unit_id: firstUnit.id,
-            components: [{ tempId: generateId(), display_name: '', material_price_id: '', coefficient: 0, component_type: 'material', selectedResourceId: '' }],
-          });
-          setSelectedTemplateKeyForEditing(null);
+            setEditingTemplateData({
+                name: '',
+                definition_key: '',
+                category_id: '',
+                calculation_schema_type: '',
+                primary_input_label: '',
+                primary_input_nature: '',
+                primary_input_unit_id: '',
+                components: [{ tempId: generateId(), display_name: '', material_price_id: '', coefficient: 0, component_type: 'material', selectedResourceId: '' }],
+            });
+            setSelectedTemplateKeyForEditing(null);
         }
+
         setShowTemplateForm(true);
-    }, [userWorkItemTemplates, userWorkItemCategories, userUnits]);
+    }, [userWorkItemTemplates, fetchWorkItemCategories]);
 
     const handleTemplateFormChange = useCallback((field, value) => setEditingTemplateData(prev => ({ ...prev, [field]: value })), [setEditingTemplateData]);
     
@@ -327,7 +352,7 @@ export const useWorkItemDefinitions = (materialPrices, userWorkItemCategories, u
         showTemplateForm,
         editingTemplateData,
         selectedTemplateKeyForEditing,
-        
+        userWorkItemCategories,
         // Setters
         setShowTemplateForm,
         setEditingTemplateData,
@@ -345,5 +370,6 @@ export const useWorkItemDefinitions = (materialPrices, userWorkItemCategories, u
 
         // --- PERBAIKAN 3: Ekspor fungsi fetch ---
         fetchWorkItemDefinitions,
+        fetchWorkItemCategories,
     };
 };

@@ -147,7 +147,7 @@ exports.deleteWorkItemCategory = async (req, res) => {
             [categoryId]
         );
         if (definitions[0].count > 0) {
-            return res.status(400).json({ message: 'Category is in use by work item definitions and cannot be deleted.' });
+            return res.status(400).json({ message: 'Kategori sedang digunakan dan tidak bisa dihapus.' });
         }
 
         // PERBAIKAN: Validasi kepemilikan (AND user_id = ?) telah dihapus sesuai permintaan
@@ -166,7 +166,7 @@ exports.deleteWorkItemCategory = async (req, res) => {
         res.json({ message: 'Work item category deleted successfully' });
     } catch (error) {
         if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-             return res.status(400).json({ message: 'Category is referenced by other records and cannot be deleted (database constraint).' });
+             return res.status(400).json({ message: 'Kategori sedang digunakan dan tidak bisa dihapus.' });
         }
         console.error('Error deleting work item category:', error);
         res.status(500).json({ message: 'Failed to delete work item category', error: error.message });

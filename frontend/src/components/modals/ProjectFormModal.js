@@ -32,6 +32,8 @@ const ProjectFormModal = ({
     // Tambahkan error props baru jika ada
     projectNameError, 
     priceError,
+    customerNameError,
+    locationError,
 }) => {
     if (!showModal) {
         return null;
@@ -66,16 +68,18 @@ const ProjectFormModal = ({
                             error={projectNameError}
                         />
                     </FormField>
-                    <FormField label="Nama Pelanggan">
+                    <FormField label="Nama Pelanggan" error={customerNameError}>
                         <FormInput
                             type="text" name="customerName" value={formData.customerName}
                             onChange={handleFormChange} placeholder="Contoh: Bpk. Andi"
+                            error={customerNameError}
                         />
                     </FormField>
-                    <FormField label="Lokasi Proyek">
+                    <FormField label="Lokasi Proyek" error={locationError}>
                         <FormInput
                             type="text" name="location" value={formData.location}
                             onChange={handleFormChange} placeholder="Contoh: Jl. Merdeka No. 10, Jakarta"
+                            error={locationError}
                         />
                     </FormField>
                     <FormField label="Nilai Kontrak Proyek (Rp)" error={priceError}>

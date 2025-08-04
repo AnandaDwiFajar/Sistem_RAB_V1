@@ -122,6 +122,29 @@ export const useMaterialPrices = (userUnits, setUserUnits) => {
         }
     }, [priceFormData, userId, showToast, userUnits]);
 
+    
+    // ✅ FUNGSI BARU: Untuk mereset form saat modal ditutup
+    const handleClosePriceForm = useCallback(() => {
+        setShowPriceForm(false);
+        setEditingPrice(null);
+        
+        const firstUnitAvailable = userUnits.length > 0 ? userUnits[0] : { id: '' };
+        setPriceFormData({ name: '', unitId: firstUnitAvailable.id, customUnitName: '', price: '' });
+        setUnitSelectionMode('select');
+    }, [userUnits]);
+
+    // ✅ FUNGSI BARU: Untuk menangani penambahan item baru
+    const handleAddNewPrice = () => {
+        setEditingPrice(null); 
+        
+        const firstUnitAvailable = userUnits.length > 0 ? userUnits[0] : { id: '' };
+        setPriceFormData({ name: '', unitId: firstUnitAvailable.id, customUnitName: '', price: '' });
+        setUnitSelectionMode('select');
+        
+        setShowPriceForm(true);
+    };
+    
+
     const handleSavePrice = useCallback(async () => {
         let unitToUseId = priceFormData.unitId;
     
@@ -269,7 +292,8 @@ export const useMaterialPrices = (userUnits, setUserUnits) => {
         setShowPriceForm,
         setEditingPrice,
         setPriceFormData,
-        
+        handleAddNewPrice,
+        handleClosePriceForm,
         // Handlers
         handlePriceFormChange,
         handleSavePrice,

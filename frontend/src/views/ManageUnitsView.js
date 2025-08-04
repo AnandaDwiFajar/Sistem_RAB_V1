@@ -42,45 +42,39 @@ const ManageUnitsView = () => {
         await handleDeleteUnit(unit)
     }
 
-    const UnitsTable = () => (
-        <div className="overflow-x-auto bg-white border border-industrial-gray-light rounded-lg shadow-sm">
-            <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-industrial-gray-light">
-                    <tr>
-                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider w-full">Nama Unit</th>
-                        <th className="p-4 text-xs font-semibold text-industrial-gray-dark uppercase tracking-wider text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody className="text-industrial-dark">
-                    {userUnits.map(unit => (
-                        <tr key={unit.id} className="border-b border-industrial-gray-light hover:bg-gray-50/50 transition-colors">
-                            {editingUnit && editingUnit.id === unit.id ? (
-                                <>
-                                    <td className="p-4">
-                                        <input type="text" value={editingName} onChange={(e) => setEditingName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()} className="w-full p-1 bg-white border border-industrial-accent rounded-md text-industrial-dark focus:outline-none focus:ring-2 focus:ring-industrial-accent" autoFocus />
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex items-center justify-end space-x-2">
-                                            <button onClick={handleSaveEdit} className="p-1.5 text-green-600 hover:text-green-700" title="Simpan"><Save size={18} /></button>
-                                            <button onClick={handleCancelEdit} className="p-1.5 text-gray-500 hover:text-gray-700" title="Batal"><X size={18} /></button>
-                                        </div>
-                                    </td>
-                                </>
-                            ) : (
-                                <>
-                                    <td className="p-4 font-medium">{unit.unit_name}</td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex items-center justify-end space-x-2">
-                                            <button onClick={() => handleStartEdit(unit)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Edit3 size={16} /></button>
-                                            <button onClick={() => handleDelete(unit)} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus"><Trash2 size={16} /></button>
-                                        </div>
-                                    </td>
-                                </>
-                            )}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+    const UnitsGrid = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {userUnits.map(unit => (
+                <div key={unit.id} className="bg-white border border-industrial-gray-light rounded-lg shadow-sm p-4 flex items-center justify-between transition-all duration-300">
+                    {editingUnit && editingUnit.id === unit.id ? (
+                        <>
+                            <input 
+                                type="text" 
+                                value={editingName} 
+                                onChange={(e) => setEditingName(e.target.value)} 
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveEdit();
+                                    if (e.key === 'Escape') handleCancelEdit();
+                                }}
+                                className="w-full p-1 bg-white border border-industrial-accent rounded-md text-industrial-dark focus:outline-none focus:ring-2 focus:ring-industrial-accent" 
+                                autoFocus 
+                            />
+                            <div className="flex items-center space-x-2 ml-3">
+                                <button onClick={handleSaveEdit} className="p-1.5 text-green-600 hover:text-green-700 rounded-full hover:bg-green-100" title="Simpan"><Save size={18} /></button>
+                                <button onClick={handleCancelEdit} className="p-1.5 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200" title="Batal"><X size={18} /></button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <p className="font-medium text-industrial-dark">{unit.unit_name}</p>
+                            <div className="flex items-center space-x-2">
+                                <button onClick={() => handleStartEdit(unit)} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent rounded-full hover:bg-blue-100" title="Edit"><Edit3 size={16} /></button>
+                                <button onClick={() => handleDelete(unit)} className="p-1.5 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100" title="Hapus"><Trash2 size={16} /></button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            ))}
         </div>
     );
 
@@ -125,7 +119,7 @@ const ManageUnitsView = () => {
             ) : userUnits.length === 0 ? (
                 <NoDataDisplay />
             ) : (
-                <UnitsTable />
+                <UnitsGrid />
             )}
 
             <ManageUnitsModal

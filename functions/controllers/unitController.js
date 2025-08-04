@@ -1,12 +1,7 @@
-// controllers/unitController.js
 const pool = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
 
-// Helper ini TIDAK AMAN untuk produksi.
-// Di produksi, Anda harus mendapatkan userId dari token otentikasi yang sudah diverifikasi.
 const getUserIdFromRequest = (req) => {
-    // Jika Anda menggunakan middleware otentikasi Firebase, ini akan menjadi:
-    // return req.user.uid; 
     return req.params.userId || req.body.userId || req.query.userId;
 };
 
@@ -113,8 +108,10 @@ exports.deleteUnit = async (req, res) => {
     try {
         const [prices] = await pool.query('SELECT COUNT(*) as count FROM material_prices WHERE unit_id = ?', [unitId]);
 
+        const [definitions] = await pool.query('SELECT COUNT(*) as count FROM material_prices WHERE unit_id = ?', [unitId]);
+
         if (prices[0].count > 0 || definitions[0].count > 0) {
-            return res.status(400).json({ message: 'Unit is in use and cannot be deleted.' });
+            return res.status(400).json({ message: 'Unit lagi digunakan pada harga material atau upah.' });
         }
 
         const [result] = await pool.query(
@@ -130,7 +127,7 @@ exports.deleteUnit = async (req, res) => {
         res.json({ message: 'Unit deleted successfully' });
     } catch (error) {
        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-           return res.status(400).json({ message: 'Unit is in use and cannot be deleted (database constraint).' });
+           return res.status(400).json({ message: 'Unit lagi digunakan pada harga material atau upah.' });
        }
         console.error('Error deleting unit:', error);
         res.status(500).json({ message: 'Failed to delete unit', error: error.message });

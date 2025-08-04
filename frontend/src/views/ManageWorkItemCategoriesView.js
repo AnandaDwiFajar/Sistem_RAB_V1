@@ -133,9 +133,7 @@ const ManageWorkItemCategoriesView = () => {
    * @param {object} category - Objek kategori yang akan dihapus.
    */
   const handleDelete = async (category) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus kategori "${category.category_name}"?`)) {
-      await handleDeleteWorkItemCategory(category.id)
-    }
+    await handleDeleteWorkItemCategory(category)
   }
 
   /**
@@ -281,7 +279,7 @@ const ManageWorkItemCategoriesView = () => {
           )}
         </div>
         <p className="pb-2 text-industrial-gray-dark">
-            Urutan kategori akan mempengaruhi tampilan di RAB
+            Urutan kategori akan mempengaruhi tampilan di RAB. Urutan pertama akan muncul di bagian atas.
           </p>
         {isLoading ? (
           <div className="flex items-center justify-center p-8 text-industrial-gray-dark">

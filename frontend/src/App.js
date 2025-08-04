@@ -187,9 +187,11 @@ function App() {
                         path="material-prices"
                         element={
                             <MaterialPricesView 
-                                materialPricesManager={materialPricesManager}
-                                onAddNew={() => materialPricesManager.setShowPriceForm(true)}
-                                onEdit={materialPricesManager.handleEditPrice}
+                            materialPricesManager={materialPricesManager}
+                            // 🔄 Ganti onAddNew dengan handler baru
+                            onAddNew={materialPricesManager.handleAddNewPrice} 
+                            // Pastikan onEdit memanggil fungsi yang benar
+                            onEdit={materialPricesManager.handleEditPrice}
                             />
                         }
                     />
@@ -211,7 +213,7 @@ function App() {
             <ProjectFormModal showModal={projectsManager.showProjectForm} handleClose={projectsManager.handleCancelEdit} formData={projectsManager.projectFormData} handleFormChange={projectsManager.handleProjectFormChange} handleSubmit={projectsManager.handleSaveOrUpdateProject} isSaving={projectsManager.isSavingProject} editingProjectId={projectsManager.editingProjectId} dateError={projectsManager.dateError} />
             <PriceFormModal
                 isOpen={materialPricesManager.showPriceForm}
-                onClose={() => materialPricesManager.setShowPriceForm(false)}
+                onClose={materialPricesManager.handleClosePriceForm}
                 editingPrice={materialPricesManager.editingPrice}
                 isSaving={materialPricesManager.isSavingPrice}
                 pricesManager={materialPricesManager}

@@ -18,6 +18,55 @@ export const useUserData = () => {
         return unit && unit.id && typeof unit.unit_name === 'string' && unit.unit_name.trim() !== '';
     };
 
+    const fetchWorkItemCategories = useCallback(() => {
+        if (!userId) return;
+        return apiService.fetchWorkItemCategories(userId)
+            .then(data => {
+                // Sorting berdasarkan `order` jika ada, jika tidak berdasarkan nama
+                const sortedData = (data || []).sort((a, b) => {
+                    if (a.order !== undefined && b.order !== undefined) {
+                        return a.order - b.order;
+                    }
+                    return (a.category_name || '').localeCompare(b.category_name || '');
+                });
+                setUserWorkItemCategories(sortedData);
+            })
+            .catch(err => {
+                showToast('error', 'Gagal memuat kategori item pekerjaan.');
+                console.error(err);
+            });
+    }, [userId, showToast]);
+
+    const fetchUserUnits = useCallback(() => {
+        if (!userId) return;
+        return apiService.fetchUserUnits(userId)
+            .then(data => {
+                const validUnits = (data || []).filter(isUnitValid);
+                setUserUnits(validUnits.sort((a, b) => a.unit_name.localeCompare(b.unit_name)));
+            })
+            .catch(err => {
+                showToast('error', 'Gagal memuat satuan.');
+                console.error(err);
+            });
+    }, [userId, showToast]);
+
+
+    // --- DIUBAH: Satu useEffect untuk mengambil semua data saat awal ---
+    useEffect(() => {
+        if (!userId) {
+            setUserWorkItemCategories([]);
+            setUserUnits([]);
+            return;
+        }
+        
+        Promise.all([
+            fetchWorkItemCategories(),
+            fetchUserUnits()
+        ]).finally(() => {
+
+        });
+    }, [userId, fetchWorkItemCategories, fetchUserUnits]);
+
     // --- FETCHERS ---
     useEffect(() => {
         if (!userId) {
@@ -66,26 +115,27 @@ export const useUserData = () => {
         if (!newCategoryName.trim()) { showToast('error', 'Nama kategori tidak boleh kosong.'); return; }
         try {
             const addedCategory = await apiService.addWorkItemCategoryApi(userId, newCategoryName.trim());
-            setUserWorkItemCategories(prev => [...prev, addedCategory]); // Hapus sort dari sini
+            // DIUBAH: Jangan update state lokal. Panggil fungsi refetch untuk mendapatkan data terbaru dari server.
+            await fetchWorkItemCategories(); 
             setNewCategoryName('');
             showToast('success', `Kategori "${addedCategory.category_name}" ditambahkan.`);
         } catch (error) {
             showToast('error', `Gagal menambahkan kategori: ${error.message}`);
         }
-    }, [newCategoryName, userId, showToast]);
+    }, [newCategoryName, userId, showToast, fetchWorkItemCategories]);
 
     const handleAddNewUnit = useCallback(async () => {
         if (!newUnitName.trim()) { showToast('error', 'Nama satuan tidak boleh kosong.'); return; }
-         try {
+        try {
             const addedUnit = await apiService.addUnitApi(userId, newUnitName.trim());
-            setUserUnits(prev => [...prev, addedUnit].sort((a, b) => a.unit_name.localeCompare(b.unit_name)));
+            // DIUBAH: Panggil refetch untuk konsistensi.
+            await fetchUserUnits();
             setNewUnitName('');
             showToast('success', `Satuan "${addedUnit.unit_name}" ditambahkan.`);
-        } catch (error)
-            {
+        } catch (error) {
             showToast('error', `Gagal menambahkan satuan: ${error.message}`);
         }
-    }, [newUnitName, userId, showToast]);
+    }, [newUnitName, userId, showToast, fetchUserUnits]);
     
     // --- UPDATE HANDLERS ---
     const handleUpdateUnit = useCallback(async (unitId, newName) => {

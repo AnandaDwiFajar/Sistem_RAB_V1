@@ -33,7 +33,8 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
     
       // Modals Visibility & Form Data
 
-    
+      const [customerNameError, setCustomerNameError] = useState(null); // BARU
+      const [locationError, setLocationError] = useState(null); // BARU
       // Specific Loading States
       const [isSavingProject, setIsSavingProject] = useState(false);
       const [isAddingWorkItem, setIsAddingWorkItem] = useState(false);
@@ -130,24 +131,45 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
               }
           }
 
+          if (name === 'customerName') {
+            if (!value.trim()) {
+                setCustomerNameError('Nama pelanggan tidak boleh kosong.');
+            } else {
+                setCustomerNameError(null);
+            }
+          }
+            
+          // Validasi Lokasi
+          if (name === 'location') {
+            if (!value.trim()) {
+                setLocationError('Lokasi proyek tidak boleh kosong.');
+            } else {
+                setLocationError(null);
+            }
+          }
+
           // Validasi harga (hanya boleh angka)
           if (name === 'projectPrice') {
-              if (value && !/^\d+$/.test(value)) {
-                  setPriceError('Harga proyek hanya boleh berisi angka.');
-              } else {
-                  setPriceError(null);
-              }
+            if (!value.trim()) {
+              setPriceError('Harga proyek tidak boleh kosong.');
+            } else if (value && !/^\d+$/.test(value)) {
+              setPriceError('Harga proyek hanya boleh berisi angka.');
+            } else {
+              setPriceError(null);
+            }
           }
 
           // Validasi tanggal (logika yang sudah ada)
           const startDate = name === 'startDate' ? value : newFormData.startDate;
           const dueDate = name === 'dueDate' ? value : newFormData.dueDate;
           if (startDate && dueDate) {
-              if (new Date(startDate) > new Date(dueDate)) {
-                  setDateError('Tanggal mulai tidak boleh melebihi tanggal tenggat.');
-              } else {
-                  setDateError(null);
-              }
+            if (!value.trim()) {
+              setDateError('Tanggal mulai dan tenggat tidak boleh kosong.');
+            } else if (new Date(startDate) > new Date(dueDate)) {
+              setDateError('Tanggal mulai tidak boleh melebihi tanggal tenggat.');
+            } else {
+              setDateError(null);
+            }
           } else {
               setDateError(null);
           }
@@ -203,22 +225,50 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
 
     const handleSaveOrUpdateProject = useCallback(async () => {
       // Validasi di sisi frontend (ini sudah benar)
-      if (!projectFormData.projectName.trim()) {
-          showToast('error', 'Nama proyek wajib diisi.');
-          return;
-      }
-      if (projectNameError) {
-          showToast('error', projectNameError);
-          return;
-      }
-      if (dateError) {
-          showToast('error', dateError);
-          return;
-      }
-      if (priceError) {
-          showToast('error', priceError);
-          return;
-      }
+         if (!projectFormData.projectName.trim()) {
+             showToast('error', 'Nama proyek wajib diisi.');
+             return;
+           }
+           if (!projectFormData.customerName.trim()) {
+             showToast('error', 'Nama pelanggan wajib diisi.');
+             return;
+           }
+           if (!projectFormData.location.trim()) {
+             showToast('error', 'Lokasi proyek wajib diisi.');
+             return;
+           }
+           if (!projectFormData.projectPrice.trim()) {
+             showToast('error', 'Nilai kontrak proyek wajib diisi.');
+             return;
+           }
+           if (!projectFormData.startDate.trim()) {
+             showToast('error', 'Tanggal mulai wajib diisi.');
+             return;
+           }
+           if (!projectFormData.dueDate.trim()) {
+             showToast('error', 'Tanggal tenggat wajib diisi.');
+             return;
+           }
+           if (projectNameError) {
+             showToast('error', projectNameError);
+             return;
+           }
+           if (customerNameError) {
+             showToast('error', customerNameError);
+             return;
+           }
+           if (locationError) {
+             showToast('error', locationError);
+             return;
+           }
+           if (dateError) {
+             showToast('error', dateError);
+             return;
+           }
+           if (priceError) {
+             showToast('error', priceError);
+             return;
+           }
       setIsSavingProject(true);
   
       try {
@@ -260,6 +310,8 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
           setProjectNameError(null);
           setDateError(null);
           setPriceError(null);
+          setCustomerNameError(null);
+          setLocationError(null);
       } catch (e) {
           console.error("Save/Update project error:", e);
           const errorMessage = e.response?.data?.message || e.message;
@@ -311,6 +363,8 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
               setEditingProjectId(projectId);
               setDateError(null);
               setPriceError(null);
+              setCustomerNameError(null);
+              setLocationError(null);
               setProjectNameError(null);
           } else {
               showToast('error', 'Gagal memuat data proyek untuk diedit.');
@@ -331,6 +385,8 @@ export const useProjects = (userWorkItemTemplates, materialPrices, userUnits, us
       setProjectFormData(initialProjectFormData);
       setDateError(null);
       setPriceError(null);
+      setCustomerNameError(null);
+      setLocationError(null);
       setProjectNameError(null);
     };
 

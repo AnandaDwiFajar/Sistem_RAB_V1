@@ -76,7 +76,7 @@ const WorkItemDefinitionsView = ({
     isSavingDefinition, handleDeleteWorkItemDefinition, handleSuggestComponents,
     isSuggestingComponents, isLoading,
 }) => {
-    const { sortedTemplates, sortedMaterialPrices, groupedSchemas } = useMemo(() => {
+    const { sortedTemplates, sortedMaterialPrices, groupedSchemas, sortedCategories } = useMemo(() => {
         const templatesArr = Object.values(userWorkItemTemplates || {}).map(t => {
              const categoryObj = userWorkItemCategories.find(c => c.id === t.category_id);
              return {
@@ -92,7 +92,7 @@ const WorkItemDefinitionsView = ({
         });
         
         const sortedPrices = [...(materialPrices || [])].sort((a, b) => a.name.localeCompare(b.name));
-        
+        const sortedUserCategories = [...(userWorkItemCategories || [])].sort((a, b) => a.category_name.localeCompare(b.category_name));
         const availableSchemas = getCalculationSchemaTypes();
         const schemasByGroup = availableSchemas.reduce((acc, schema) => {
             const group = schema.group || 'Lainnya';
@@ -101,7 +101,7 @@ const WorkItemDefinitionsView = ({
             return acc;
         }, {});
 
-        return { sortedTemplates: templatesArr, sortedMaterialPrices: sortedPrices, groupedSchemas: schemasByGroup };
+        return { sortedTemplates: templatesArr, sortedMaterialPrices: sortedPrices, groupedSchemas: schemasByGroup, sortedCategories: sortedUserCategories };
     }, [userWorkItemTemplates, userWorkItemCategories, materialPrices]);
 
 
@@ -109,7 +109,7 @@ const WorkItemDefinitionsView = ({
     if (showTemplateForm && editingTemplateData) {
         const currentSchemaKey = editingTemplateData.calculation_schema_type || 'SIMPLE_PRIMARY_INPUT';
         const currentSelectedSchemaDetails = CALCULATION_SCHEMAS[currentSchemaKey];
-
+        console.log('DIRENDER ULANG DENGAN DAFTAR KATEGORI:', sortedCategories.map(c => c.category_name));
         return (
             <div className="p-6">
 
@@ -124,7 +124,7 @@ const WorkItemDefinitionsView = ({
                         <FormField label="Kategori">
                             <FormSelect name="category_id" value={editingTemplateData.category_id || ''} onChange={(e) => handleTemplateFormChange('category_id', e.target.value)}>
                                 <option value="">-- Pilih Kategori --</option>
-                                {userWorkItemCategories.sort((a, b) => a.category_name.localeCompare(b.category_name)).map(cat => <option key={cat.id} value={cat.id}>{cat.category_name}</option>)}
+                                {sortedCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.category_name}</option>)}
                             </FormSelect>
                         </FormField>
                     </div>
