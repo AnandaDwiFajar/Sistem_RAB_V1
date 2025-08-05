@@ -315,5 +315,6 @@ export const useUserData = () => {
         handleDeleteUnit,
         handleUpdateCategoriesOrder,
         setUserWorkItemCategories,
+        refetchWorkItemCategories: fetchWorkItemCategories
         };
 };

@@ -74,7 +74,7 @@ const WorkItemDefinitionsView = ({
     handleOpenTemplateForm, handleTemplateFormChange, handleTemplateComponentChange,
     handleAddTemplateComponent, handleRemoveTemplateComponent, handleSaveWorkItemTemplate,
     isSavingDefinition, handleDeleteWorkItemDefinition, handleSuggestComponents,
-    isSuggestingComponents, isLoading,
+    isSuggestingComponents, isLoading, onCategoryDropdownClick,
 }) => {
     const { sortedTemplates, sortedMaterialPrices, groupedSchemas, sortedCategories } = useMemo(() => {
         const templatesArr = Object.values(userWorkItemTemplates || {}).map(t => {
@@ -122,7 +122,7 @@ const WorkItemDefinitionsView = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField label="Nama Pekerjaan"><FormInput type="text" value={editingTemplateData.name || ''} onChange={(e) => handleTemplateFormChange('name', e.target.value)} placeholder="e.g., Pekerjaan Dinding Batako" /></FormField>
                         <FormField label="Kategori">
-                            <FormSelect name="category_id" value={editingTemplateData.category_id || ''} onChange={(e) => handleTemplateFormChange('category_id', e.target.value)}>
+                            <FormSelect name="category_id" value={editingTemplateData.category_id || ''} onChange={(e) => handleTemplateFormChange('category_id', e.target.value)} onClick={onCategoryDropdownClick}>
                                 <option value="">-- Pilih Kategori --</option>
                                 {sortedCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.category_name}</option>)}
                             </FormSelect>

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { PlusCircle, Save, Trash2, ChevronDown, ChevronUp, Loader2, Pencil } from 'lucide-react';
 import { CSSTransition } from 'react-transition-group';
 import { formatCurrency } from '../utils/helpers';
@@ -39,6 +39,8 @@ const ProjectWorkItemsView = ({
     handleCancelEditWorkItem,
 }) => {
     const formRef = useRef(null);
+    const [openItemId, setOpenItemId] = useState(null);
+
     // Memastikan data dari props aman untuk digunakan
     if (!currentProject) return null;
     const { userWorkItemTemplates = {} } = definitionsManager;
@@ -101,7 +103,6 @@ const ProjectWorkItemsView = ({
                                 </FormSelect>
                             </FormField>
                             
-                            {/* Input dinamis berdasarkan skema */}
                             {selectedSchema && !selectedSchema.isSimple && selectedTemplate && selectedSchema.inputs.map(inputDef => (
                                 <FormField key={inputDef.key} label={`${inputDef.label} ${inputDef.unitSymbol ? `(${inputDef.unitSymbol})` : ''}`}>
                                     <FormInput
@@ -142,35 +143,38 @@ const ProjectWorkItemsView = ({
             
             {workItems.length > 0 ? (
                 <div className="space-y-3">
-                    {workItems.map(item => (
-                        <details key={item.id} className="bg-white p-4 rounded-lg shadow-sm border border-industrial-gray-light group transition-all duration-300">
-                            <summary className="flex justify-between items-center cursor-pointer list-none">
-                                <span className="font-semibold text-industrial-dark">{item.definition_name_snapshot}</span>
-                                <div className="flex items-center">
-                                    <span className="font-bold text-green-600 mr-4">{formatCurrency(parseFloat(item.total_item_cost_snapshot))}</span>
-                                    {!currentProject.is_archived && (
-                                        <>
-                                            <button onClick={(e) => { e.preventDefault(); handleStartEditWorkItem(item); }} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Pencil size={16}/></button>
-                                            <button onClick={(e) => { e.preventDefault(); handleDeleteWorkItem(item.id); }} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus"><Trash2 size={16}/></button>
-                                        </>
-                                    )}
-                                    <ChevronDown size={20} className="ml-2 text-industrial-gray group-open:hidden"/>
-                                    <ChevronUp size={20} className="ml-2 text-industrial-gray hidden group-open:block"/>
+                    {workItems.map(item => {
+                        const isOpen = openItemId === item.id;
+                        return (
+                            <div key={item.id} className="bg-white p-4 rounded-lg shadow-sm border border-industrial-gray-light">
+                                <div className="flex justify-between items-center cursor-pointer" onClick={() => setOpenItemId(isOpen ? null : item.id)}>
+                                    <span className="font-semibold text-industrial-dark">{item.definition_name_snapshot}</span>
+                                    <div className="flex items-center">
+                                        <span className="font-bold text-green-600 mr-4">{formatCurrency(parseFloat(item.total_item_cost_snapshot))}</span>
+                                        {!currentProject.is_archived && (
+                                            <>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStartEditWorkItem(item); }} className="p-1.5 text-industrial-gray-dark hover:text-industrial-accent" title="Edit"><Pencil size={16}/></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteWorkItem(item.id); }} className="p-1.5 text-red-500 hover:text-red-700" title="Hapus"><Trash2 size={16}/></button>
+                                            </>
+                                        )}
+                                        {isOpen ? <ChevronUp size={20} className="ml-2 text-industrial-gray" /> : <ChevronDown size={20} className="ml-2 text-industrial-gray" />}
+                                    </div>
                                 </div>
-                            </summary>
-                            <div className="mt-4 pt-3 border-t border-industrial-gray-light text-sm text-industrial-gray-dark">
-                                <p className="font-semibold mb-2">Rincian Komponen:</p>
-                                <ul className="list-disc list-inside pl-2 space-y-1 text-xs">
-                                    {/* Parsing snapshot yang aman */}
-                                    {(Array.isArray(item.components_snapshot) ? item.components_snapshot : []).map((comp, idx) => (
-                                        <li key={idx}>
-                                            {comp.component_name_snapshot}: {parseFloat(comp.quantity_calculated).toFixed(2)} {comp.unit_snapshot} @ {formatCurrency(parseFloat(comp.price_per_unit_snapshot))} = <span className="font-medium">{formatCurrency(parseFloat(comp.cost_calculated))}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                {isOpen && (
+                                    <div className="mt-4 pt-3 border-t border-industrial-gray-light text-sm text-industrial-gray-dark">
+                                        <p className="font-semibold mb-2">Rincian Komponen:</p>
+                                        <ul className="list-disc list-inside pl-2 space-y-1 text-xs">
+                                            {(Array.isArray(item.components_snapshot) ? item.components_snapshot : []).map((comp, idx) => (
+                                                <li key={idx}>
+                                                    {comp.component_name_snapshot}: {parseFloat(comp.quantity_calculated).toFixed(2)} {comp.unit_snapshot} @ {formatCurrency(parseFloat(comp.price_per_unit_snapshot))} = <span className="font-medium">{formatCurrency(parseFloat(comp.cost_calculated))}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
-                        </details>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 !showWorkItemForm && <p className="text-center text-industrial-gray italic py-4">Belum ada item pekerjaan di proyek ini.</p>

@@ -8,10 +8,6 @@ export const CALCULATION_SCHEMAS = {
         id: 'DEFAULT',
         name: 'Default',
     },
-
-    // =================================================================================
-    // GRUP 0: PEKERJAAN PERSIAPAN & PEMBONGKARAN
-    // =================================================================================
     DEMOLITION_VOLUME: {
         id: 'DEMOLITION_VOLUME',
         group: '0. Pekerjaan Persiapan & Pembongkaran',

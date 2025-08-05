@@ -32,9 +32,10 @@ const AppLayout = ({ handleLogout, outletContext }) => {
     return (
         <div className="flex h-screen bg-industrial-background">
             <Sidebar handleLogout={handleLogout} userRole={userRole} />
-            <main className="flex-1 p-6 overflow-auto">
-                {/* TERUSKAN CONTEXT KE OUTLET */}
-                <Outlet context={outletContext} />
+            <main className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6">
+                    <Outlet context={outletContext} />
+                </div>
             </main>
         </div>
     );
@@ -200,6 +201,7 @@ function App() {
                             {...definitionsManager}
                             userWorkItemCategories={userData.userWorkItemCategories}
                             materialPrices={materialPricesManager.materialPrices}
+                            onCategoryDropdownClick={userData.refetchWorkItemCategories}
                         />} 
                     />
                     <Route path="settings/units" element={<ManageUnitsView units={userData.userUnits} setUnits={userData.setUserUnits} />} />

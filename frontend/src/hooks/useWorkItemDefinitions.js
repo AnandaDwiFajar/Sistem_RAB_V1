@@ -6,21 +6,20 @@ import { slugify, generateId } from '../utils/helpers';
 import { DEFAULT_PRIMARY_INPUT_LABELS } from '../utils/constants';
 import { CALCULATION_SCHEMAS } from '../utils/calculationSchemas';
 
-export const useWorkItemDefinitions = (materialPrices, userUnits) => {
+export const useWorkItemDefinitions = (materialPrices, userWorkItemCategories, userUnits) => {
     const { userId } = useAuth();
     const { showToast, showConfirm } = useUI();
-    const [userWorkItemCategories, setUserWorkItemCategories] = useState([]);
+    
     const [userWorkItemTemplates, setUserWorkItemTemplates] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSavingDefinition, setIsSavingDefinition] = useState(false);
     const [isSuggestingComponents, setIsSuggestingComponents] = useState(false);
     
-    // Form state
     const [showTemplateForm, setShowTemplateForm] = useState(false);
     const [editingTemplateData, setEditingTemplateData] = useState(null);
     const [selectedTemplateKeyForEditing, setSelectedTemplateKeyForEditing] = useState(null);
 
-    // --- PERBAIKAN 1: Buat fungsi fetch yang bisa dipanggil ulang ---
+    // Fungsi ini HANYA untuk mengambil DEFINISI pekerjaan, bukan KATEGORI.
     const fetchWorkItemDefinitions = useCallback(() => {
         if (!userId) {
             setUserWorkItemTemplates({});
@@ -44,39 +43,13 @@ export const useWorkItemDefinitions = (materialPrices, userUnits) => {
             .finally(() => setIsLoading(false));
     }, [userId, showToast]);
 
-    const fetchWorkItemCategories = useCallback(() => {
-        if (!userId) {
-            setUserWorkItemCategories([]);
-            return Promise.resolve(); 
-        }
-        
-        console.log("1. MEMULAI FETCH KATEGORI..."); // LOG 1
-
-        return apiService.fetchWorkItemCategories(userId)
-            .then(data => {
-                console.log("2. API MENGEMBALIKAN DATA:", data); // LOG 2
-                setUserWorkItemCategories(data || []);
-            })
-            .catch(error => {
-                console.error("Error fetching work item categories:", error);
-                showToast('error', `Error fetching categories: ${error.message}`);
-                setUserWorkItemCategories([]);
-            });
-    }, [userId, showToast]);
-
     useEffect(() => {
+        // useEffect ini sekarang HANYA memanggil fetch untuk definisi.
         fetchWorkItemDefinitions();
-        fetchWorkItemCategories(); 
-    }, [fetchWorkItemDefinitions, fetchWorkItemCategories]);
+    }, [fetchWorkItemDefinitions]);
     
-    // --- HANDLER DENGAN LOGGING DAN ASYNC/AWAIT ---
-    const handleOpenTemplateForm = useCallback(async (templateIdToEdit = null) => {
-        console.log("3. TOMBOL 'TAMBAH/EDIT' DIKLIK."); // LOG 3
-        
-        await fetchWorkItemCategories();
-        
-        console.log("4. FETCH KATEGORI SELESAI. State 'userWorkItemCategories' SEKARANG HARUSNYA SUDAH TERBARU."); // LOG 4
-
+    // Handler untuk membuka form. Sudah bersih dan tidak memanggil fetch kategori lagi.
+    const handleOpenTemplateForm = useCallback((templateIdToEdit = null) => {
         if (templateIdToEdit && userWorkItemTemplates[templateIdToEdit]) {
             const templateToEdit = JSON.parse(JSON.stringify(userWorkItemTemplates[templateIdToEdit]));
             templateToEdit.components = (templateToEdit.components || []).map(c => ({
@@ -92,16 +65,12 @@ export const useWorkItemDefinitions = (materialPrices, userUnits) => {
                 definition_key: '',
                 category_id: '',
                 calculation_schema_type: '',
-                primary_input_label: '',
-                primary_input_nature: '',
-                primary_input_unit_id: '',
                 components: [{ tempId: generateId(), display_name: '', material_price_id: '', coefficient: 0, component_type: 'material', selectedResourceId: '' }],
             });
             setSelectedTemplateKeyForEditing(null);
         }
-
         setShowTemplateForm(true);
-    }, [userWorkItemTemplates, fetchWorkItemCategories]);
+    }, [userWorkItemTemplates]);
 
     const handleTemplateFormChange = useCallback((field, value) => setEditingTemplateData(prev => ({ ...prev, [field]: value })), [setEditingTemplateData]);
     
@@ -370,6 +339,5 @@ export const useWorkItemDefinitions = (materialPrices, userUnits) => {
 
         // --- PERBAIKAN 3: Ekspor fungsi fetch ---
         fetchWorkItemDefinitions,
-        fetchWorkItemCategories,
     };
 };
